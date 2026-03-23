@@ -1,0 +1,36 @@
+# ==========================================
+# 基础配置
+# ==========================================
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smart-campus-portal
+
+  # ==========================================
+  # 数据库连接配置 (你的本地 MySQL 环境)
+  # ==========================================
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 指向 smart_campus1 数据库，并配置时区和字符集
+    url: jdbc:mysql://localhost:3306/smart_campus1?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true
+    username: root
+    password: root
+
+# ==========================================
+# MyBatis-Plus 配置
+# ==========================================
+mybatis-plus:
+  configuration:
+    # 开启驼峰命名自动映射 (例如数据库的 user_name 自动映射为 Java 的 userName)
+    map-underscore-to-camel-case: true
+    # 打印 SQL 日志，方便我们在开发阶段排查问题，写论文截图也用得上
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  
+  global-config:
+    db-config:
+      # 逻辑删除全局属性（可选配置，后续如果要用逻辑删除的话）
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
