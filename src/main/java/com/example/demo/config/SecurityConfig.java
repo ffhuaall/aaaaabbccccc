@@ -33,6 +33,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/login").permitAll() // 仅放行登录接口
                 // .requestMatchers("/activity/**").permitAll() // 【注释/删除这一行，开始保护活动接口】
+                .requestMatchers("/lost-found/**").permitAll() // 【新增】放行失物招领模块测试
                 .anyRequest().authenticated()
             );
 
