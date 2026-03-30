@@ -37,4 +37,15 @@ public class BizActivityController {
         boolean success = activityService.save(activity);
         return Result.success(success);
     }
+
+    /**
+     * 个性化活动推荐接口 (基于用户的协同过滤)
+     * 示例: GET /activity/recommend?userId=1002&topN=3
+     */
+    @GetMapping("/recommend")
+    public Result<List<BizActivity>> recommend(@RequestParam Long userId, 
+                                               @RequestParam(defaultValue = "3") Integer topN) {
+        List<BizActivity> recommendedList = activityService.recommendActivities(userId, topN);
+        return Result.success(recommendedList);
+    }
 }

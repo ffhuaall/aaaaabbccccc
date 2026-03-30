@@ -117,3 +117,26 @@ CREATE TABLE `biz_lost_found` (
 
 
 
+-----------------------------------------------------------------------
+-- 个人课表排期表
+CREATE TABLE `biz_course_schedule` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `student_id` bigint(20) NOT NULL COMMENT '学生ID',
+  `course_name` varchar(100) NOT NULL COMMENT '课程名称',
+  `teacher_name` varchar(50) DEFAULT NULL COMMENT '任课教师',
+  `location` varchar(100) NOT NULL COMMENT '上课地点(如: 第一教学楼101)',
+  `day_of_week` int(11) NOT NULL COMMENT '星期几(1-7)',
+  `period` int(11) NOT NULL COMMENT '节次区块(1代表1-2节, 2代表3-4节, 3代表下午5-6节, 4代表7-8节, 5代表晚上9-10节)',
+  `start_week` int(11) NOT NULL COMMENT '起始周',
+  `end_week` int(11) NOT NULL COMMENT '结束周',
+  `week_type` int(11) DEFAULT '0' COMMENT '单双周规则: 0-每周全上, 1-仅单周上, 2-仅双周上',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='个人课表信息表';
+
+-- 为学号 1001 (张三) 插入几条极具代表性的测试数据
+-- 1. 高等数学：周一第1大节，1-16周，每周都上
+INSERT INTO `biz_course_schedule` VALUES (1, 1001, '高等数学(上)', '李老师', '教1-101', 1, 1, 1, 16, 0);
+-- 2. 大学物理：周三第2大节，1-16周，仅单周上！
+INSERT INTO `biz_course_schedule` VALUES (2, 1001, '大学物理实验', '王老师', '实验楼-302', 3, 2, 1, 16, 1);
+-- 3. 软件工程：周五第3大节，5-12周，仅双周上！
+INSERT INTO `biz_course_schedule` VALUES (3, 1001, '软件工程', '赵老师', '机房-501', 5, 3, 5, 12, 2);
