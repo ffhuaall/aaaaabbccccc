@@ -12,11 +12,11 @@
           <el-icon><DataLine /></el-icon>
           <template #title>数据大屏</template>
         </el-menu-item>
-        <el-menu-item index="/activity" disabled>
+        <el-menu-item index="/activity">
           <el-icon><Calendar /></el-icon>
-          <template #title>活动中心 (待开发)</template>
+          <template #title>活动中心</template>
         </el-menu-item>
-        <el-menu-item index="/repair" disabled>
+        <el-menu-item index="/repair">
           <el-icon><Wrench /></el-icon>
           <template #title>宿舍报修 (待开发)</template>
         </el-menu-item>

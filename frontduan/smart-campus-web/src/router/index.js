@@ -19,7 +19,12 @@ const router = createRouter({
           path: 'dashboard',
           name: 'Dashboard',
           component: () => import('@/views/Dashboard.vue')
-        }
+        },
+		{
+		  path: 'activity',
+		  name: 'Activity',
+		  component: () => import('@/views/Activity.vue')
+		}
         // 后续的 activity, repair, course 等页面都会继续往这里面加
       ]
     }

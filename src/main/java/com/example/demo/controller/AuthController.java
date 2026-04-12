@@ -52,6 +52,7 @@ public class AuthController {
         // 5. 封装返回数据
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
+        data.put("id", user.getId());
         data.put("username", user.getUsername());
         data.put("realName", user.getRealName());
         data.put("roleId", user.getRoleId());
