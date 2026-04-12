@@ -16,6 +16,10 @@
           <el-icon><Calendar /></el-icon>
           <template #title>活动中心</template>
         </el-menu-item>
+		<el-menu-item index="/classroom">
+		  <el-icon><Search /></el-icon>
+		  <template #title>空闲教室</template>
+		</el-menu-item>
         <el-menu-item index="/repair">
           <el-icon><Wrench /></el-icon>
           <template #title>宿舍报修 (待开发)</template>
