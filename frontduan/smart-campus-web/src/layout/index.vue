@@ -37,7 +37,11 @@
             <el-icon><Tools /></el-icon>
             <template #title>工单处理中心</template>
           </el-menu-item>
-        </template>
+          <el-menu-item index="/admin/activity">
+            <el-icon><Collection /></el-icon>
+            <template #title>活动发布管理</template>
+          </el-menu-item>
+        </template>		
 
       </el-menu>      
       
