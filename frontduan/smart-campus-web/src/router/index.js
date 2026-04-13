@@ -39,6 +39,11 @@ const router = createRouter({
 		  path: 'course',
 		  name: 'Course',
 		  component: () => import('@/views/Course.vue')
+	    },
+		{
+		  path: 'admin/repair',
+		  name: 'AdminRepair',
+		  component: () => import('@/views/admin/AdminRepair.vue')
 	    }
         // 后续的 activity, repair, course 等页面都会继续往这里面加
       ]

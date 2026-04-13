@@ -1,6 +1,5 @@
 package com.example.demo.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.common.Result;
 import com.example.demo.entity.BizRepairOrder;
 import com.example.demo.service.BizRepairOrderService;
@@ -16,33 +15,45 @@ public class BizRepairOrderController {
     @Autowired
     private BizRepairOrderService repairOrderService;
 
-    // 1. 学生提交报修工单
-    @PostMapping("/submit")
-    public Result<Boolean> submit(@RequestBody BizRepairOrder order) {
-        // 模拟当前登录学生ID，后续从 Token 中解析
-        if (order.getStudentId() == null) order.setStudentId(1001L); 
-        return Result.success(repairOrderService.submitOrder(order));
-    }
-
-    // 2. 查询所有工单 (大厅列表)
+    // 获取所有报修工单 (管理员看所有，学生前端已做过滤)
     @GetMapping("/list")
-    public Result<List<BizRepairOrder>> list() {
+    public Result<List<BizRepairOrder>> getList() {
         return Result.success(repairOrderService.list());
     }
 
-    // 3. 维修工接单 (通过 URL 传参传递 orderId)
-    @PostMapping("/take/{orderId}")
-    public Result<Boolean> takeOrder(@PathVariable Long orderId) {
-        // 模拟当前登录维修工ID
-        Long currentWorkerId = 2001L; 
-        boolean success = repairOrderService.takeOrder(orderId, currentWorkerId);
-        return success ? Result.success(true) : Result.error(400, "接单失败，该工单可能已被抢走或状态不正确");
+    // 学生提交报修 (你之前可能写过，保持原样即可)
+    @PostMapping("/submit")
+    public Result<Boolean> submit(@RequestBody BizRepairOrder order) {
+        order.setStatus(0); // 0-待接单
+        order.setCreateTime(java.time.LocalDateTime.now());
+        return Result.success(repairOrderService.save(order));
     }
 
-    // 4. 维修工完成维修
-    @PostMapping("/finish/{orderId}")
-    public Result<Boolean> finishRepair(@PathVariable Long orderId) {
-        boolean success = repairOrderService.finishRepair(orderId);
-        return success ? Result.success(true) : Result.error(400, "操作失败，工单状态不正确");
+    /**
+     * 【新增】管理员接单接口 (状态 0 -> 1)
+     */
+    @PostMapping("/take/{id}")
+    public Result<Boolean> takeOrder(@PathVariable Long id) {
+        BizRepairOrder order = repairOrderService.getById(id);
+        if (order != null && order.getStatus() == 0) {
+            order.setStatus(1); // 1-维修中
+            repairOrderService.updateById(order);
+            return Result.success(true);
+        }
+        return Result.error(400, "接单失败，该工单状态不正确");
+    }
+
+    /**
+     * 【新增】管理员完工接口 (状态 1 -> 2)
+     */
+    @PostMapping("/finish/{id}")
+    public Result<Boolean> finishOrder(@PathVariable Long id) {
+        BizRepairOrder order = repairOrderService.getById(id);
+        if (order != null && order.getStatus() == 1) {
+            order.setStatus(2); // 2-待评价
+            repairOrderService.updateById(order);
+            return Result.success(true);
+        }
+        return Result.error(400, "操作失败，该工单尚未开始维修");
     }
 }

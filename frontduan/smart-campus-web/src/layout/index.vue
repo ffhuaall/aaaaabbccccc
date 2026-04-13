@@ -12,23 +12,34 @@
           <el-icon><DataLine /></el-icon>
           <template #title>数据大屏</template>
         </el-menu-item>
-        <el-menu-item index="/activity">
-		  <el-icon><Calendar /></el-icon>
-          <template #title>活动中心</template>
-        </el-menu-item>
-		<el-menu-item index="/classroom">
-		  <el-icon><Search /></el-icon>
-		  <template #title>空闲教室</template>
-		</el-menu-item>
-        <el-menu-item index="/repair">
-          <el-icon><Wrench /></el-icon>
-          <template #title>宿舍报修</template>
-        </el-menu-item>
-		<el-menu-item index="/course">
-		  <el-icon><Calendar /></el-icon>
-		  <template #title>我的课表</template>
-		</el-menu-item>
-      </el-menu>
+        
+        <template v-if="!userInfo.roleId || userInfo.roleId === 1">
+          <el-menu-item index="/activity">
+            <el-icon><Calendar /></el-icon>
+            <template #title>活动中心</template>
+          </el-menu-item>
+          <el-menu-item index="/classroom">
+            <el-icon><Search /></el-icon>
+            <template #title>空闲教室</template>
+          </el-menu-item>
+          <el-menu-item index="/course">
+            <el-icon><Calendar /></el-icon>
+            <template #title>我的课表</template>
+          </el-menu-item>
+          <el-menu-item index="/repair">
+            <el-icon><Wrench /></el-icon>
+            <template #title>宿舍报修</template>
+          </el-menu-item>
+        </template>
+
+        <template v-if="userInfo.roleId === 2">
+          <el-menu-item index="/admin/repair">
+            <el-icon><Tools /></el-icon>
+            <template #title>工单处理中心</template>
+          </el-menu-item>
+        </template>
+
+      </el-menu>      
       
       <div class="bottom-action">
         <el-button circle icon="SwitchButton" @click="handleLogout" type="danger" plain/>
