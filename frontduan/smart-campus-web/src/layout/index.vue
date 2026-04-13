@@ -13,7 +13,7 @@
           <template #title>数据大屏</template>
         </el-menu-item>
         <el-menu-item index="/activity">
-          <el-icon><Calendar /></el-icon>
+		  <el-icon><Calendar /></el-icon>
           <template #title>活动中心</template>
         </el-menu-item>
 		<el-menu-item index="/classroom">
@@ -22,8 +22,12 @@
 		</el-menu-item>
         <el-menu-item index="/repair">
           <el-icon><Wrench /></el-icon>
-          <template #title>宿舍报修 (待开发)</template>
+          <template #title>宿舍报修</template>
         </el-menu-item>
+		<el-menu-item index="/course">
+		  <el-icon><Calendar /></el-icon>
+		  <template #title>我的课表</template>
+		</el-menu-item>
       </el-menu>
       
       <div class="bottom-action">
