@@ -5,12 +5,15 @@ import com.example.demo.entity.BizActivity;
 import com.example.demo.service.BizActivityService;
 import com.example.demo.service.SysUserService;
 import com.example.demo.entity.BizActivityRegistration;
+import com.example.demo.entity.SysMessage;
 import com.example.demo.entity.SysUser;
 
 import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.entity.BizActivityRegistration;
 import com.example.demo.mapper.BizActivityRegistrationMapper;
+import com.example.demo.mapper.SysMessageMapper;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +34,8 @@ public class BizActivityController {
     private BizActivityRegistrationMapper registrationMapper;
     @Autowired
     private SysUserService userService;
+    @Autowired
+    private SysMessageMapper messageMapper;
     /**
      * 查询所有活动列表
      */
@@ -145,14 +150,30 @@ public class BizActivityController {
     /**
      * 【新增】审核/操作报名人员状态 (如：取消资格/签到等)
      */
+
     @PostMapping("/audit-participant")
     public Result<Boolean> auditParticipant(@RequestParam Long regId, @RequestParam Integer status) {
         BizActivityRegistration reg = registrationMapper.selectById(regId);
         if (reg != null) {
             reg.setStatus(status);
             registrationMapper.updateById(reg);
+
+            // 【新增逻辑】如果劝退，给学生发实时通知
+            if (status == 0) {
+                SysMessage msg = new SysMessage();
+                // 【关键修改】使用 setReceiverId
+                msg.setReceiverId(reg.getUserId()); 
+                msg.setTitle("活动资格变动通知");
+                msg.setContent("遗憾通知：您报名的活动状态已被管理员变更为 [已取消]，请前往活动中心查看详情。");
+                msg.setType("ACTIVITY");
+                msg.setIsRead(0);
+                msg.setCreateTime(java.time.LocalDateTime.now());
+                messageMapper.insert(msg);
+            }
             return Result.success(true);
         }
         return Result.error(400, "记录不存在");
     }
+
+    
 }
