@@ -42,6 +42,9 @@
         <el-form-item label="活动介绍">
           <el-input v-model="activityForm.content" type="textarea" :rows="3" />
         </el-form-item>
+		<el-form-item label="活动地点">
+		  <el-input v-model="activityForm.location" placeholder="如：大学生活动中心一楼" />
+		</el-form-item>
         <el-form-item label="活动时间">
           <el-date-picker
             v-model="activityTimeRange"
@@ -60,6 +63,10 @@
     </el-dialog>
 
     <el-dialog v-model="userVisible" :title="`报名名单 - ${selectedActivity?.title}`" width="700px" append-to-body>
+      <div style="margin-bottom: 15px; text-align: right;">
+        <el-button type="success" icon="Download" @click="exportCSV">导出名单 (CSV)</el-button>
+      </div>
+      
       <el-table :data="participantList" height="400">
         <el-table-column prop="realName" label="学生姓名" />
         <el-table-column prop="username" label="学号" />
@@ -73,14 +80,7 @@
         </el-table-column>
         <el-table-column label="操作" width="120">
           <template #default="scope">
-            <el-button 
-              v-if="scope.row.status === 1" 
-              type="danger" 
-              size="small" 
-              link 
-              @click="auditUser(scope.row.regId, 0)">
-              取消资格
-            </el-button>
+            <el-button v-if="scope.row.status === 1" type="danger" size="small" link @click="auditUser(scope.row.regId, 0)">取消资格</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -102,6 +102,7 @@ const activityTimeRange = ref([])
 const activityForm = reactive({
   title: '',
   content: '',
+  location: '',
   publisherId: JSON.parse(localStorage.getItem('userInfo'))?.id || 1
 })
 
@@ -128,6 +129,12 @@ const submitAdd = async () => {
   ElMessage.success('发布成功！')
   addVisible.value = false
   fetchList()
+  
+  // 清空表单
+  activityForm.title = ''
+  activityForm.content = ''
+  activityForm.location = ''
+  activityTimeRange.value = []
 }
 
 const viewParticipants = async (act) => {
@@ -135,6 +142,47 @@ const viewParticipants = async (act) => {
   const res = await request.get(`/activity/participants/${act.id}`)
   participantList.value = res || []
   userVisible.value = true
+}
+
+// 【新增方法 1】停止报名功能
+const handleStop = async (id) => {
+  try {
+    // 弹窗确认
+    await ElMessageBox.confirm('确定要停止该活动的报名吗？停止后学生将无法报名。', '提示', { type: 'warning' })
+    await request.post(`/activity/stop/${id}`)
+    ElMessage.success('已停止报名')
+    fetchList() // 刷新列表
+  } catch (error) {
+    console.log('取消操作')
+  }
+}
+
+// 【新增方法 2】纯前端导出 CSV 逻辑（黑科技）
+const exportCSV = () => {
+  if (participantList.value.length === 0) {
+    ElMessage.warning('当前没有任何人报名，无法导出')
+    return
+  }
+  
+  // \uFEFF 是 BOM 头，防止 Excel 打开中文乱码
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+  // 表头
+  csvContent += "学生姓名,学号,报名时间,当前状态\n"
+  
+  // 遍历数据组装内容
+  participantList.value.forEach(row => {
+    const statusStr = row.status === 1 ? '已报名' : '已劝退'
+    csvContent += `${row.realName},${row.username},${row.createTime},${statusStr}\n`
+  })
+  
+  // 触发浏览器下载
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement("a")
+  link.setAttribute("href", encodedUri)
+  link.setAttribute("download", `${selectedActivity.value.title}_报名名单.csv`)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link) // 下载完移除
 }
 
 const auditUser = async (regId, status) => {

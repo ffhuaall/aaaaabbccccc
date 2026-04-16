@@ -38,11 +38,18 @@
             <el-icon><Tools /></el-icon>
             <template #title>工单处理中心</template>
           </el-menu-item>
+        </template>	
+
+        <template v-if="userInfo.roleId === 3">
           <el-menu-item index="/admin/activity">
             <el-icon><Collection /></el-icon>
             <template #title>活动发布管理</template>
           </el-menu-item>
-        </template>	
+          <el-menu-item index="/activity">
+            <el-icon><Monitor /></el-icon>
+            <template #title>大厅效果预览</template>
+          </el-menu-item>
+        </template>
 
       </el-menu>      
       
@@ -126,6 +133,12 @@ const openMessageDrawer = async () => {
   const currentUserId = userInfo.id || 1001
   const res = await request.get(`/message/list?userId=${currentUserId}`)
   messageList.value = res || []
+}
+
+const startPolling = () => {
+  timer = setInterval(() => {
+    fetchUnreadCount()
+  }, 30000) // 30000 毫秒 = 30 秒
 }
 
 // 标为已读

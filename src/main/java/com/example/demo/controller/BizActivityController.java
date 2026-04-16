@@ -72,18 +72,29 @@ public class BizActivityController {
     //活动报名接口
     @PostMapping("/register")
     public Result<Boolean> registerActivity(@RequestParam Long activityId, @RequestParam Long userId) {
-        // 1. 防重复报名校验：查询数据库里是不是已经有这条记录了
+        // 1. 查询该用户针对该活动的【所有】报名记录（包括取消的）
         QueryWrapper<BizActivityRegistration> wrapper = new QueryWrapper<>();
         wrapper.eq("activity_id", activityId).eq("user_id", userId);
-        if (registrationMapper.selectCount(wrapper) > 0) {
-            return Result.error(400, "您已经报名过该活动啦，请勿重复操作！");
+        
+        BizActivityRegistration existingReg = registrationMapper.selectOne(wrapper);
+
+        if (existingReg != null) {
+            // 如果记录存在，且状态是 1 (已报名)，才拦截
+            if (existingReg.getStatus() == 1) {
+                return Result.error(400, "您已经报名过该活动啦！");
+            }
+            // 【关键优化】如果记录存在但状态是 0 (被取消)，则将其“复活”为 1
+            existingReg.setStatus(1);
+            existingReg.setCreateTime(LocalDateTime.now());
+            registrationMapper.updateById(existingReg);
+            return Result.success(true);
         }
 
-        // 2. 插入报名记录
+        // 2. 如果完全没记录，正常插入
         BizActivityRegistration reg = new BizActivityRegistration();
         reg.setActivityId(activityId);
         reg.setUserId(userId);
-        reg.setStatus(1); // 1 代表正常报名状态
+        reg.setStatus(1);
         reg.setCreateTime(LocalDateTime.now());
         registrationMapper.insert(reg);
 
@@ -114,6 +125,18 @@ public class BizActivityController {
         activity.setCreateTime(java.time.LocalDateTime.now());
         // 实际开发中，publisherId 应该从当前登录的 Token 中获取
         return Result.success(activityService.save(activity));
+    }
+
+    //停止报名
+    @PostMapping("/stop/{id}")
+    public Result<Boolean> stopActivity(@PathVariable Long id) {
+        BizActivity activity = activityService.getById(id);
+        if (activity != null) {
+            activity.setStatus(0); // 0-已结束
+            activityService.updateById(activity);
+            return Result.success(true);
+        }
+        return Result.error(400, "活动不存在");
     }
 
     /**
