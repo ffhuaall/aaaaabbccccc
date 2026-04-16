@@ -91,7 +91,7 @@
 <script setup>
 import { ref, onMounted, reactive } from 'vue'
 import request from '@/utils/request'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
 const allActivities = ref([])
