@@ -39,6 +39,8 @@ public class SecurityConfig {
                 .requestMatchers("/lost-found/**").permitAll() // 【新增】放行失物招领模块测试
                 .requestMatchers("/repair/**").permitAll()
                 .requestMatchers("/message/**").permitAll()
+                .requestMatchers("/file/upload").permitAll()
+                .requestMatchers("/picture/**").permitAll()
                 .anyRequest().authenticated()
             );
 
