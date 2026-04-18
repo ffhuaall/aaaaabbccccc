@@ -28,8 +28,8 @@
             <template #title>我的课表</template>
           </el-menu-item>
           <el-menu-item index="/repair">
-            <el-icon><Wrench /></el-icon>
-            <template #title>宿舍报修</template>
+            <el-icon><Service /></el-icon>
+			<template #title>宿舍报修</template>
           </el-menu-item>
         </template>
 

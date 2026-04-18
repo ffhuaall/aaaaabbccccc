@@ -59,15 +59,26 @@
             <span v-else style="color: #999;">该学生未上传照片</span>
           </el-descriptions-item>
         </el-descriptions>
+
+        <div v-if="currentOrder.status === 3 && evaluationData" class="evaluation-box">
+          <h4 style="margin-top: 0; color: #67C23A; border-bottom: 1px solid #eee; padding-bottom: 10px;">🌟 学生评价反馈</h4>
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="margin-right: 15px; color: #666;">服务打分：</span>
+            <el-rate v-model="evaluationData.score" disabled show-score text-color="#ff9900" />
+          </div>
+          <div style="color: #555; background: #f8f9fa; padding: 10px; border-radius: 6px;">
+            "{{ evaluationData.comment || '该同学很懒，没有留下文字描述~' }}"
+          </div>
+        </div>
       </div>
 
       <template #footer>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-size: 13px; color: #999;">请仔细核对故障信息带对工具</span>
           <div>
-            <el-button @click="detailVisible = false">稍后处理</el-button>
-            <el-button v-if="currentOrder?.status === 0" type="primary" @click="handleAction('take')">确认接单</el-button>
-            <el-button v-if="currentOrder?.status === 1" type="success" @click="handleAction('finish')">登记修完</el-button>
+            <el-button @click="detailVisible = false">关闭</el-button>
+            <el-button v-if="currentOrder?.status === 0" type="primary" @click="handleTakeOrder">确认接单</el-button>
+            <el-button v-if="currentOrder?.status === 1" type="success" @click="handleFinishOrder">登记修完</el-button>
           </div>
         </div>
       </template>
@@ -82,19 +93,29 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
 const allOrders = ref([])
-
-// 弹窗状态
 const detailVisible = ref(false)
 const currentOrder = ref(null)
+const evaluationData = ref(null) // 存储查到的评价数据
+
+// 获取当前登录的师傅信息
+const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+const currentWorkerId = userInfo.id || 2001
 
 const getStatusConfig = (status) => {
   const configMap = {
+    '-1': { text: '已撤销', type: 'info' },
     0: { text: '待接单', type: 'warning' },
     1: { text: '维修中', type: 'primary' },
     2: { text: '待评价', type: 'success' },
     3: { text: '已闭环', type: 'info' }
   }
   return configMap[status] || { text: '未知状态', type: 'info' }
+}
+
+const safeParseImages = (imgStr) => {
+  if (!imgStr) return []
+  try { return JSON.parse(imgStr) } 
+  catch (e) { return [imgStr] }
 }
 
 const fetchAllOrders = async () => {
@@ -110,35 +131,46 @@ const fetchAllOrders = async () => {
   }
 }
 
-// 【关键修复点】健壮的图片解析器（防止数据库存错格式导致页面崩溃）
-const safeParseImages = (imgStr) => {
-  if (!imgStr) return []
-  try {
-    // 正常情况：解析 JSON 数组 ["http://..."]
-    return JSON.parse(imgStr)
-  } catch (e) {
-    // 容错情况：如果你手动存成了一个单条 URL 字符串，包装成数组返回
-    return [imgStr]
+// 【升级】打开详情时，如果是已完成的单子，自动去查评价
+const openDetail = async (row) => {
+  currentOrder.value = row
+  evaluationData.value = null // 先清空上次的评价数据
+  detailVisible.value = true
+  
+  if (row.status === 3) {
+    try {
+      const res = await request.get(`/repair/evaluation/${row.id}`)
+      evaluationData.value = res
+    } catch (e) {
+      console.log('该工单暂无评价数据')
+    }
   }
 }
 
-// 打开详情弹窗
-const openDetail = (row) => {
-  currentOrder.value = row
-  detailVisible.value = true
+// 【升级】接单时传自己的 workerId
+const handleTakeOrder = async () => {
+  try {
+    await ElMessageBox.confirm('确认接手这个工单吗？', '操作提示', { type: 'warning' })
+    // 注意这里多传了一个 workerId
+    await request.post(`/repair/take/${currentOrder.value.id}?workerId=${currentWorkerId}`)
+    ElMessage.success('接单成功，系统已通知该学生！')
+    detailVisible.value = false
+    fetchAllOrders()
+  } catch (error) {
+    console.log('取消操作')
+  }
 }
 
-// 统一处理流转操作
-const handleAction = async (action) => {
-  const actionText = action === 'take' ? '确认接手这个工单吗？' : '确认该故障已修复完毕吗？'
+// 登记修完
+const handleFinishOrder = async () => {
   try {
-    await ElMessageBox.confirm(actionText, '操作提示', { type: 'warning' })
-    await request.post(`/repair/${action}/${currentOrder.value.id}`)
-    ElMessage.success('操作成功！流转状态已更新。')
-    detailVisible.value = false // 关掉弹窗
-    fetchAllOrders() // 刷新列表
+    await ElMessageBox.confirm('确认该故障已修复完毕吗？', '操作提示', { type: 'warning' })
+    await request.post(`/repair/finish/${currentOrder.value.id}`)
+    ElMessage.success('已登记修完，等待学生评价！')
+    detailVisible.value = false
+    fetchAllOrders()
   } catch (error) {
-    console.log('操作取消或失败')
+    console.log('取消操作')
   }
 }
 
@@ -153,4 +185,5 @@ onMounted(() => {
 .card-header { display: flex; align-items: center; font-size: 18px; font-weight: bold; }
 .card-header .emoji { font-size: 24px; margin-right: 10px; }
 .image-gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+.evaluation-box { margin-top: 20px; padding: 15px; border: 1px dashed #67C23A; border-radius: 8px; background-color: #f0f9eb; }
 </style>
