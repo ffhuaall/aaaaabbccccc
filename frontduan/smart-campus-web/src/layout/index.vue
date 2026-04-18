@@ -50,6 +50,17 @@
             <template #title>大厅效果预览</template>
           </el-menu-item>
         </template>
+		
+		<template v-if="userInfo.roleId === 4">
+          <el-menu-item index="/admin/user">
+            <el-icon><UserFilled /></el-icon>
+            <template #title>用户与权限管理</template>
+          </el-menu-item>
+          <el-menu-item index="/dashboard">
+            <el-icon><DataLine /></el-icon>
+            <template #title>全站数据大屏</template>
+          </el-menu-item>
+        </template>
 
       </el-menu>      
       

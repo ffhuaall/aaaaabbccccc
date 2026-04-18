@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/message/**").permitAll()
                 .requestMatchers("/file/upload").permitAll()
                 .requestMatchers("/picture/**").permitAll()
+                .requestMatchers("/user**").permitAll()
                 .anyRequest().authenticated()
             );
 

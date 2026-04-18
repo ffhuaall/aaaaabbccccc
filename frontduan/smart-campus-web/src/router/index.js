@@ -49,7 +49,12 @@ const router = createRouter({
 		  path: 'admin/activity',
 		  name: 'AdminActivity',
 		  component: () => import('@/views/admin/AdminActivity.vue')
-	    }
+	    },
+		{
+          path: 'admin/user',
+          name: 'UserManage',
+          component: () => import('@/views/admin/UserManage.vue')
+        }
         // 后续的 activity, repair, course 等页面都会继续往这里面加
       ]
     }
