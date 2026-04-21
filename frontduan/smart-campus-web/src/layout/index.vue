@@ -1,6 +1,5 @@
 <template>
   <div class="app-wrapper">
-    
     <div class="sidebar-capsule">
       <div class="logo">✨</div>
       <el-menu
@@ -29,7 +28,7 @@
           </el-menu-item>
           <el-menu-item index="/repair">
             <el-icon><Service /></el-icon>
-			<template #title>宿舍报修</template>
+            <template #title>宿舍报修</template>
           </el-menu-item>
         </template>
 
@@ -50,26 +49,38 @@
             <template #title>大厅效果预览</template>
           </el-menu-item>
         </template>
-		
-		<template v-if="userInfo.roleId === 4">
+
+        <template v-if="userInfo.roleId === 4">
           <el-menu-item index="/admin/user">
             <el-icon><UserFilled /></el-icon>
             <template #title>用户与权限管理</template>
           </el-menu-item>
+		  <el-menu-item index="/admin/notice">
+		    <el-icon><Notification /></el-icon>
+		    <template #title>系统公告管理</template>
+		  </el-menu-item>
           <el-menu-item index="/dashboard">
             <el-icon><DataLine /></el-icon>
             <template #title>全站数据大屏</template>
           </el-menu-item>
         </template>
-
-      </el-menu>      
-      
+      </el-menu>   
       <div class="bottom-action">
         <el-button circle icon="SwitchButton" @click="handleLogout" type="danger" plain/>
       </div>
     </div>
 
     <div class="main-container">
+      <el-alert
+        v-if="latestNotice"
+        :title="latestNotice.title + '：' + latestNotice.content"
+        :type="latestNotice.level"
+        center
+        show-icon
+        closable
+        class="system-notice-banner"
+      />
+
       <div class="top-header">
         <h2 class="page-title">智慧校园大厅</h2>
         
@@ -115,30 +126,51 @@
 </template>
 
 <script setup>
-// 【修复点】将所有需要的引入合并在一处，避免重复报错
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 
 const router = useRouter()
-// 从 localStorage 中取出登录时存的用户信息
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
 const userName = ref(userInfo.realName || '同学')
 
-// ======== 消息中心逻辑 ========
+// ======== 消息与公告状态 ========
 const unreadCount = ref(0)
 const drawerVisible = ref(false)
 const messageList = ref([])
+const latestNotice = ref(null) // 【新增】存储最新的公告内容
+let timer = null 
 
-// 获取未读数量
-const fetchUnreadCount = async () => {
-  const currentUserId = userInfo.id || 1001
-  const res = await request.get(`/message/unread-count?userId=${currentUserId}`)
-  unreadCount.value = res || 0
+// 获取最新公告
+const fetchLatestNotice = async () => {
+  try {
+    const res = await request.get('/notice/latest')
+    latestNotice.value = res // 如果后端返回 null，则横幅自动消失
+  } catch (e) {
+    console.error("公告获取失败")
+  }
 }
 
-// 打开抽屉并拉取列表
+// 获取未读消息数
+const fetchUnreadCount = async () => {
+  const currentUserId = userInfo.id || 1001
+  try {
+    const res = await request.get(`/message/unread-count?userId=${currentUserId}`)
+    unreadCount.value = res || 0
+  } catch (e) {
+    console.error("刷新消息失败")
+  }
+}
+
+// 轮询刷新：每 30 秒检查一次公告和未读消息
+const startPolling = () => {
+  timer = setInterval(() => {
+    fetchUnreadCount()
+    fetchLatestNotice() // 【同步轮询】确保公告也能实时更新
+  }, 30000)
+}
+
 const openMessageDrawer = async () => {
   drawerVisible.value = true
   const currentUserId = userInfo.id || 1001
@@ -146,20 +178,12 @@ const openMessageDrawer = async () => {
   messageList.value = res || []
 }
 
-const startPolling = () => {
-  timer = setInterval(() => {
-    fetchUnreadCount()
-  }, 30000) // 30000 毫秒 = 30 秒
-}
-
-// 标为已读
 const handleRead = async (id) => {
   await request.post(`/message/read/${id}`)
-  fetchUnreadCount() // 更新红点
-  openMessageDrawer() // 刷新列表
+  fetchUnreadCount()
+  openMessageDrawer()
 }
 
-// 全部已读
 const handleReadAll = async () => {
   const currentUserId = userInfo.id || 1001
   await request.post(`/message/read-all?userId=${currentUserId}`)
@@ -167,23 +191,27 @@ const handleReadAll = async () => {
   openMessageDrawer()
 }
 
-// ======== 退出登录逻辑 ========
 const handleLogout = () => {
   ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' }).then(() => {
+    if (timer) clearInterval(timer)
     localStorage.removeItem('token')
     localStorage.removeItem('userInfo')
     router.push('/login')
   })
 }
 
-// 页面加载时自动获取未读消息数
 onMounted(() => {
   fetchUnreadCount()
+  fetchLatestNotice() // 页面初始加载公告
+  startPolling()
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
 })
 </script>
 
 <style scoped>
-/* 整个屏幕的软渐变背景 */
 .app-wrapper {
   display: flex;
   height: 100vh;
@@ -193,7 +221,6 @@ onMounted(() => {
   gap: 20px;
 }
 
-/* 侧边栏：圆润悬浮效果 */
 .sidebar-capsule {
   width: 80px;
   background: white;
@@ -205,22 +232,10 @@ onMounted(() => {
   padding: 20px 0;
 }
 
-.logo {
-  font-size: 28px;
-  margin-bottom: 30px;
-}
+.logo { font-size: 28px; margin-bottom: 30px; }
+.floating-menu { border-right: none; flex: 1; width: 100%; }
+.bottom-action { margin-top: auto; }
 
-.floating-menu {
-  border-right: none;
-  flex: 1;
-  width: 100%;
-}
-
-.bottom-action {
-  margin-top: auto;
-}
-
-/* 右侧主体容器 */
 .main-container {
   flex: 1;
   background: white;
@@ -229,6 +244,13 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* 公告横幅样式：固定高度且视觉统一 */
+.system-notice-banner {
+  border-radius: 0;
+  border: none;
+  font-weight: bold;
 }
 
 .top-header {
@@ -240,50 +262,15 @@ onMounted(() => {
   border-bottom: 1px solid #f0f0f0;
 }
 
-.page-title {
-  margin: 0;
-  font-size: 18px;
-  color: #333;
-}
+.page-title { margin: 0; font-size: 18px; color: #333; }
+.header-right { display: flex; align-items: center; gap: 25px; }
+.user-info { display: flex; align-items: center; gap: 10px; font-weight: bold; color: #555; }
+.msg-badge { cursor: pointer; display: flex; align-items: center; }
+.bell-icon { font-size: 22px; color: #555; transition: color 0.3s; }
+.bell-icon:hover { color: #409EFF; }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 25px;
-}
+.content-body { flex: 1; padding: 20px; overflow-y: auto; background: #fafbfc; }
 
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: bold;
-  color: #555;
-}
-
-.msg-badge { 
-  cursor: pointer; 
-  display: flex; 
-  align-items: center; 
-}
-
-.bell-icon { 
-  font-size: 22px; 
-  color: #555; 
-  transition: color 0.3s; 
-}
-
-.bell-icon:hover { 
-  color: #409EFF; 
-}
-
-.content-body {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  background: #fafbfc;
-}
-
-/* 抽屉内消息卡片样式 */
 .msg-item {
   padding: 15px;
   border-radius: 8px;
@@ -291,40 +278,14 @@ onMounted(() => {
   margin-bottom: 15px;
   border-left: 4px solid #dcdfe6;
 }
-
 .msg-item.is-unread {
   background: #fff;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   border-left-color: #409EFF;
 }
-
-.msg-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 8px; 
-}
-
-.msg-time { 
-  font-size: 12px; 
-  color: #999; 
-}
-
-.msg-title { 
-  font-weight: bold; 
-  font-size: 15px; 
-  color: #333; 
-  margin-bottom: 5px; 
-}
-
-.msg-content { 
-  font-size: 13px; 
-  color: #666; 
-  line-height: 1.5; 
-}
-
-.msg-action { 
-  text-align: right; 
-  margin-top: 10px; 
-}
+.msg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.msg-time { font-size: 12px; color: #999; }
+.msg-title { font-weight: bold; font-size: 15px; color: #333; margin-bottom: 5px; }
+.msg-content { font-size: 13px; color: #666; line-height: 1.5; }
+.msg-action { text-align: right; margin-top: 10px; }
 </style>

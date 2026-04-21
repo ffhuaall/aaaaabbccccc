@@ -132,6 +132,16 @@ CREATE TABLE `biz_course_schedule` (
   `week_type` int(11) DEFAULT '0' COMMENT '单双周规则: 0-每周全上, 1-仅单周上, 2-仅双周上',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='个人课表信息表';
+-- 公告表
+CREATE TABLE `sys_notice` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `title` varchar(100) NOT NULL COMMENT '公告标题',
+  `content` text NOT NULL COMMENT '公告正文',
+  `level` varchar(20) DEFAULT 'info' COMMENT '级别：info(蓝色), warning(黄色), error(红色)',
+  `is_active` tinyint(1) DEFAULT '1' COMMENT '是否发布(1是 0否)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统公告表';
 
 -- 为学号 1001 (张三) 插入几条极具代表性的测试数据
 -- 1. 高等数学：周一第1大节，1-16周，每周都上
