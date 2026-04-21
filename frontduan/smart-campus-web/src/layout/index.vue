@@ -90,8 +90,18 @@
           </el-badge>
           
           <div class="user-info">
-            <el-avatar size="small" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
-            <span class="username">{{ userName }}</span>
+            <el-dropdown trigger="click">
+              <div style="display: flex; align-items: center; cursor: pointer; gap: 10px;">
+                <el-avatar size="small" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
+                <span class="username">{{ userName }}</span>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item icon="User" @click="router.push('/personal')">个人中心</el-dropdown-item>
+                  <el-dropdown-item icon="SwitchButton" divided @click="handleLogout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </div>

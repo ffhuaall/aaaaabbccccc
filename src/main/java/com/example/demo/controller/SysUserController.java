@@ -21,12 +21,21 @@ public class SysUserController {
      * 1. 获取全校用户列表 (支持根据学号/姓名模糊搜索)
      */
     @GetMapping("/list")
-    public Result<List<SysUser>> getList(@RequestParam(required = false) String keyword) {
+    public Result<List<SysUser>> getList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer roleId) { // [新增] 角色筛选参数
         QueryWrapper<SysUser> wrapper = new QueryWrapper<>();
-        if (StringUtils.hasText(keyword)) {
-            // 模糊匹配学号或真实姓名
-            wrapper.like("username", keyword).or().like("real_name", keyword);
+        
+        // 如果传了角色ID，则进行精确匹配
+        if (roleId != null) {
+            wrapper.eq("role_id", roleId);
         }
+        
+        // 关键词模糊匹配
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(q -> q.like("username", keyword).or().like("real_name", keyword));
+        }
+        
         wrapper.orderByDesc("create_time");
         return Result.success(userService.list(wrapper));
     }
@@ -65,5 +74,21 @@ public class SysUserController {
         user.setId(id);
         user.setPassword("123456");
         return Result.success(userService.updateById(user));
+    }
+
+    /**
+     * 5. [新增] 用户修改个人资料 (仅限修改非敏感字段)
+     */
+    @PostMapping("/update-profile")
+    public Result<Boolean> updateProfile(@RequestBody SysUser user) {
+        // 安全限制：个人中心只允许修改手机号、真实姓名、头像
+        // 学号、角色、状态等核心属性通过 ID 关联更新，但逻辑上由超管在 save 接口控制
+        SysUser updateData = new SysUser();
+        updateData.setId(user.getId());
+        updateData.setRealName(user.getRealName());
+        updateData.setPhone(user.getPhone());
+        updateData.setAvatar(user.getAvatar());
+        
+        return Result.success(userService.updateById(updateData));
     }
 }

@@ -7,17 +7,30 @@
           <span class="title">全站账号权限控制中心</span>
           
           <div class="header-actions">
+            <el-select 
+              v-model="searchRoleId" 
+              placeholder="全部角色" 
+              clearable 
+              style="width: 150px; margin-right: 15px;"
+              @change="fetchUsers"
+            >
+              <el-option label="学生" :value="1" />
+              <el-option label="维修工" :value="2" />
+              <el-option label="社团负责人" :value="3" />
+              <el-option label="管理员" :value="4" />
+            </el-select>
+          
             <el-input 
               v-model="searchKeyword" 
               placeholder="搜索学号或姓名..." 
               clearable 
               prefix-icon="Search"
-              style="width: 250px; margin-right: 15px;"
+              style="width: 200px; margin-right: 15px;"
               @keyup.enter="fetchUsers"
               @clear="fetchUsers"
             />
-            <el-button type="primary" @click="fetchUsers">搜索</el-button>
-            <el-button type="success" icon="Plus" @click="openAddDialog">开通新账号</el-button>
+            <el-button type="primary" @click="fetchUsers">检索</el-button>
+            <el-button type="success" icon="Plus" @click="openAddDialog">开通账号</el-button>
           </div>
         </div>
       </template>
@@ -101,6 +114,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const loading = ref(false)
 const userList = ref([])
 const searchKeyword = ref('')
+const searchRoleId = ref(null) // [新增]
 
 const dialogVisible = ref(false)
 const form = reactive({
@@ -125,10 +139,9 @@ const getRoleConfig = (roleId) => {
 const fetchUsers = async () => {
   loading.value = true
   try {
-    const res = await request.get(`/user/list?keyword=${searchKeyword.value}`)
+    // [修改] 接口请求带上 roleId
+    const res = await request.get(`/user/list?keyword=${searchKeyword.value}&roleId=${searchRoleId.value || ''}`)
     userList.value = res || []
-  } catch (error) {
-    console.error(error)
   } finally {
     loading.value = false
   }
