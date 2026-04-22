@@ -63,6 +63,10 @@
             <el-icon><DataLine /></el-icon>
             <template #title>全站数据大屏</template>
           </el-menu-item>
+		  <el-menu-item index="/admin/repair-all">
+		    <el-icon><Tools /></el-icon>
+		    <template #title>宿舍报修管理</template>
+		  </el-menu-item>
         </template>
       </el-menu>   
       <div class="bottom-action">

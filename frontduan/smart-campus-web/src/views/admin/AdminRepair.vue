@@ -189,8 +189,8 @@ const fetchAllOrders = async () => {
   loading.value = true
   try {
     const res = await request.get('/repair/list')
-    allOrders.value = res || []
-    allOrders.value.sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+    const data = res || []
+    allOrders.value = data.sort((a, b) => b.id - a.id)
   } catch (error) {
     console.error('获取列表失败', error)
   } finally {

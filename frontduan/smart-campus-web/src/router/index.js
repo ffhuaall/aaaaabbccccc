@@ -65,6 +65,11 @@ const router = createRouter({
 		  name: 'Personal',
 		  component: () => import('@/views/PersonalCenter.vue')
 		},
+		{
+		  path: 'admin/repair-all',
+		  name: 'SuperRepairManage',
+		  component: () => import('@/views/admin/SuperRepairManage.vue')
+		}
         // 后续的 activity, repair, course 等页面都会继续往这里面加
       ]
     }

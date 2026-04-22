@@ -128,4 +128,39 @@ public class BizRepairOrderController {
         }
         return Result.error(400, "操作失败，该工单尚未开始维修");
     }
+
+    //删除工单 (用于清理测试数据或违规数据)
+    @PostMapping("/delete/{id}")
+    public Result<Boolean> deleteOrder(@PathVariable Long id) {
+        // 只有超管权限建议在前端控制，后端也可以根据角色校验
+        return Result.success(repairOrderService.removeById(id));
+    }
+
+    /**
+     * 【超管特权】人工指派工单
+     * @param orderId 工单ID
+     * @param workerId 维修人员用户ID
+     */
+    @PostMapping("/assign")
+    public Result<Boolean> assignOrder(@RequestParam Long orderId, @RequestParam Long workerId) {
+        BizRepairOrder order = repairOrderService.getById(orderId);
+        if (order != null) {
+            order.setWorkerId(workerId);
+            order.setStatus(1); // 强制变更为维修中
+            repairOrderService.updateById(order);
+
+            // [同步发送通知给工人]
+            SysMessage msg = new SysMessage();
+            msg.setReceiverId(workerId);
+            msg.setTitle("管理员指派工单");
+            msg.setContent("管理员为您指派了工单【" + order.getTitle() + "】，请及时处理。");
+            msg.setType("REPAIR");
+            msg.setIsRead(0);
+            msg.setCreateTime(java.time.LocalDateTime.now());
+            messageMapper.insert(msg);
+
+            return Result.success(true);
+        }
+        return Result.error(400, "工单不存在");
+    }
 }
