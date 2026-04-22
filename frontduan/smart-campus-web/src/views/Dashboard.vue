@@ -1,146 +1,160 @@
 <template>
   <div class="dashboard-page">
-    <el-skeleton :loading="loading" animated>
-      <template #default>
-        
-        <el-row :gutter="20" class="stat-cards">
-          <el-col :span="8">
-            <el-card shadow="hover" class="data-card blue-card">
-              <div class="stat-title">全网注册用户</div>
-              <div class="stat-value">{{ statsData.totalUsers }} <span class="unit">人</span></div>
-            </el-card>
-          </el-col>
-          <el-col :span="8">
-            <el-card shadow="hover" class="data-card green-card">
-              <div class="stat-title">累计报修工单</div>
-              <div class="stat-value">{{ statsData.repairStats?.total || 0 }} <span class="unit">件</span></div>
-            </el-card>
-          </el-col>
-          <el-col :span="8">
-            <el-card shadow="hover" class="data-card orange-card">
-              <div class="stat-title">工单完结率</div>
-              <div class="stat-value">
-                {{ repairCompletionRate }} <span class="unit">%</span>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
+    
+    <div v-if="userInfo.roleId === 2" class="worker-dashboard">
+      <h2 style="margin-bottom: 20px; color: #333;">师傅您好，今天是辛勤工作的一天！🔧</h2>
+      
+      <el-row :gutter="20" class="stat-cards">
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card blue">
+            <div class="stat-title">待接工单</div>
+            <div class="stat-value">{{ workerStats.poolCount }}</div>
+            <el-icon class="stat-icon"><List /></el-icon>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card warning">
+            <div class="stat-title">我的未完成待办</div>
+            <div class="stat-value">{{ workerStats.todoCount }}</div>
+            <el-icon class="stat-icon"><Timer /></el-icon>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card success">
+            <div class="stat-title">我的历史总完成量</div>
+            <div class="stat-value">{{ workerStats.doneCount }}</div>
+            <el-icon class="stat-icon"><CircleCheck /></el-icon>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card purple">
+            <div class="stat-title">本月好评率</div>
+            <div class="stat-value">98.5<span style="font-size: 16px;">%</span></div>
+            <el-icon class="stat-icon"><Star /></el-icon>
+          </el-card>
+        </el-col>
+      </el-row>
+      
+      <el-card shadow="never" style="margin-top: 20px; border-radius: 12px;">
+        <template #header><div style="font-weight: bold;">📢 维修人员操作规范</div></template>
+        <el-timeline>
+          <el-timeline-item type="primary" size="large" timestamp="第一步：及时接单">在工单大厅查看并接手任务，系统会自动通知报修学生。</el-timeline-item>
+          <el-timeline-item type="warning" size="large" timestamp="第二步：上门处理">携带工具根据“宿舍位置”和“现场照片”进行精准维修。</el-timeline-item>
+          <el-timeline-item type="success" size="large" timestamp="第三步：登记闭环">维修完成后，务必在系统内点击“登记修完”，等待学生进行最终的星级打分！</el-timeline-item>
+        </el-timeline>
+      </el-card>
+    </div>
 
-        <el-row style="margin-top: 20px;">
-          <el-col :span="12">
-            <el-card shadow="never" class="list-card">
-              <template #header>
-                <span style="font-weight: bold; font-size: 16px;">🔥 校园活动热度榜 (Top 5)</span>
-              </template>
-              
-              <div v-for="(item, index) in statsData.topActivities" :key="index" class="activity-item">
-                <div class="rank-box" :class="'rank-' + (index + 1)">{{ index + 1 }}</div>
-                <div class="activity-title">{{ item.title }}</div>
-                <div class="activity-count">
-                  <el-tag size="small" type="danger" effect="light">{{ item.reg_count }} 人报名</el-tag>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
 
-      </template>
-    </el-skeleton>
+    <div v-else class="general-dashboard">
+      <h2 style="margin-bottom: 20px; color: #333;">智慧校园全景数据大盘 🌐</h2>
+      
+      <el-row :gutter="20" class="stat-cards">
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card blue">
+            <div class="stat-title">全站注册用户</div>
+            <div class="stat-value">1,254</div>
+            <el-icon class="stat-icon"><User /></el-icon>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card success">
+            <div class="stat-title">累计举办活动</div>
+            <div class="stat-value">38</div>
+            <el-icon class="stat-icon"><Medal /></el-icon>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card warning">
+            <div class="stat-title">今日报修单数</div>
+            <div class="stat-value">12</div>
+            <el-icon class="stat-icon"><Tools /></el-icon>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card purple">
+            <div class="stat-title">系统平稳运行</div>
+            <div class="stat-value">256 <span style="font-size: 16px;">天</span></div>
+            <el-icon class="stat-icon"><Odometer /></el-icon>
+          </el-card>
+        </el-col>
+      </el-row>
+      
+      <el-card shadow="never" style="margin-top: 20px; border-radius: 12px; min-height: 300px;">
+        <el-empty description="欢迎使用智慧校园综合服务大厅" />
+      </el-card>
+    </div>
+    
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import request from '@/utils/request'
 
-const loading = ref(true)
-const statsData = ref({})
+const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+const currentWorkerId = userInfo.id || 2001
 
-// 计算工单完成率 (已完成 / 总数)
-const repairCompletionRate = computed(() => {
-  const total = statsData.value.repairStats?.total || 0
-  const completed = statsData.value.repairStats?.completed || 0
-  if (total === 0) return 0
-  return Math.round((completed / total) * 100)
+// 维修师傅的数据状态
+const workerStats = reactive({
+  poolCount: 0,
+  todoCount: 0,
+  doneCount: 0
 })
 
-// 页面挂载时立刻请求后端接口
-onMounted(async () => {
+// 如果是师傅登录，顺便请求一下 /repair/list 统计属于他的数据
+const fetchWorkerStats = async () => {
+  if (userInfo.roleId !== 2) return
   try {
-    loading.value = true
-    // 【核心联调代码】调用我们后端的 DashboardController 接口
-    const data = await request.get('/dashboard/statistics')
-    statsData.value = data
+    const res = await request.get('/repair/list')
+    const allOrders = res || []
+    
+    workerStats.poolCount = allOrders.filter(item => item.status === 0).length
+    workerStats.todoCount = allOrders.filter(item => (item.status === 1 || item.status === 2) && item.workerId === currentWorkerId).length
+    workerStats.doneCount = allOrders.filter(item => item.status === 3 && item.workerId === currentWorkerId).length
   } catch (error) {
-    console.error('获取大屏数据失败', error)
-  } finally {
-    loading.value = false
+    console.error('获取统计数据失败', error)
   }
+}
+
+onMounted(() => {
+  fetchWorkerStats()
 })
 </script>
 
 <style scoped>
-.dashboard-page {
-  height: 100%;
+.dashboard-page { padding-bottom: 20px; }
+
+/* 炫酷的统一样式卡片 */
+.stat-card {
+  position: relative;
+  border-radius: 12px;
+  border: none;
+  color: white;
+  overflow: hidden;
 }
 
-.data-card {
-  border-radius: 12px;
-  color: white;
-  border: none;
-}
-.blue-card { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-.green-card { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-.orange-card { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.stat-card.blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.stat-card.success { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.stat-card.warning { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+.stat-card.purple { background: linear-gradient(135deg, #c471f5 0%, #fa71cd 100%); }
 
 .stat-title {
-  font-size: 14px;
+  font-size: 15px;
   opacity: 0.9;
   margin-bottom: 10px;
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: bold;
 }
-.unit {
-  font-size: 14px;
-  font-weight: normal;
-}
 
-.list-card {
-  border-radius: 12px;
-}
-
-.activity-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px dashed #eee;
-}
-.activity-item:last-child {
-  border-bottom: none;
-}
-
-.rank-box {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: #f0f2f5;
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 12px;
-  margin-right: 15px;
-}
-.rank-1 { background: #ffe4e6; color: #f43f5e; }
-.rank-2 { background: #ffedd5; color: #f97316; }
-.rank-3 { background: #fef3c7; color: #eab308; }
-
-.activity-title {
-  flex: 1;
-  color: #333;
+.stat-icon {
+  position: absolute;
+  right: 15px;
+  bottom: 15px;
+  font-size: 60px;
+  opacity: 0.2;
 }
 </style>
