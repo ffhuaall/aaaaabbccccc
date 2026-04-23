@@ -8,72 +8,106 @@
             <span class="title">校园失物招领中心</span>
           </div>
           <div class="header-right">
-            <el-select v-model="filter.category" placeholder="物品类别" clearable style="width: 130px; margin-right: 12px;" @change="handleFilter">
+            <el-select v-model="filter.category" placeholder="物品类别" clearable style="width: 130px; margin-right: 12px;">
               <el-option label="证件" value="证件" />
               <el-option label="电子产品" value="电子产品" />
               <el-option label="学习用品" value="学习用品" />
               <el-option label="生活用品" value="生活用品" />
               <el-option label="其他" value="其他" />
             </el-select>
-            <el-input 
-              v-model="filter.keyword" 
-              placeholder="搜索物品名称或地点..." 
-              clearable 
-              prefix-icon="Search"
-              style="width: 220px; margin-right: 12px;"
-              @keyup.enter="handleFilter"
-              @clear="handleFilter"
-            />
+            <el-input v-model="filter.keyword" placeholder="搜索关键词..." clearable style="width: 200px; margin-right: 12px;" />
             <el-button type="primary" icon="Plus" @click="openPublishDialog">发布信息</el-button>
           </div>
         </div>
       </template>
 
-      <el-tabs v-model="activeTab" class="custom-tabs" @tab-change="handleFilter">
-        <el-tab-pane name="all" label="全部信息" />
-        <el-tab-pane name="lost" label="📢 寻物启事 (我丢了东西)" />
-        <el-tab-pane name="found" label="🤝 失物招领 (我捡到东西)" />
-        <el-tab-pane name="my" label="👤 我的发布" />
+      <el-tabs v-model="activeTab" class="custom-tabs">
+        <el-tab-pane name="all" label="全部" />
+        <el-tab-pane name="lost" label="寻物启事" />
+        <el-tab-pane name="found" label="失物招领" />
+        <el-tab-pane name="my" label="我的发布" />
       </el-tabs>
 
       <div v-loading="loading" class="items-grid">
         <el-empty v-if="filteredList.length === 0" description="暂无相关物品信息" style="width: 100%; grid-column: 1 / -1;" />
         
-        <el-card v-for="item in filteredList" :key="item.id" shadow="hover" class="item-card" :body-style="{ padding: '0px' }">
-          <div class="item-image-wrapper">
-            <el-image 
-              :src="safeGetFirstImage(item.images) || defaultImage" 
-              class="item-image" 
-              fit="cover"
-              :preview-src-list="safeParseImages(item.images)"
-              preview-teleported
-            />
-            <div :class="['type-badge', item.type === 0 ? 'badge-lost' : 'badge-found']">
+        <el-card v-for="item in filteredList" :key="item.id" class="item-card" @click="showDetails(item)">
+          <div class="item-img-box">
+            <el-image :src="getFirstImage(item.images) || defaultImg" fit="cover" />
+            <div :class="['type-tag', item.type === 0 ? 'lost' : 'found']">
               {{ item.type === 0 ? '寻物' : '招领' }}
             </div>
-            <div v-if="item.status === 1" class="status-badge resolved">已结案</div>
           </div>
-
-          <div class="item-content">
-            <div class="item-title" :title="item.title">{{ item.title }}</div>
-            <div class="item-desc">
-              <el-tag size="small" type="info" style="margin-right: 5px;">{{ item.category || '其他' }}</el-tag>
-              <span class="location-text"><el-icon><Location /></el-icon> {{ item.location }}</span>
-            </div>
-            <div class="item-time"><el-icon><Clock /></el-icon> {{ item.createTime?.substring(0, 16) }}</div>
-            
-            <div class="item-footer">
-              <el-button v-if="activeTab !== 'my'" type="primary" plain size="small" style="width: 100%;" @click="viewContact(item)">联系发布者</el-button>
-              
-              <div v-else style="display: flex; gap: 10px; width: 100%;">
-                <el-button v-if="item.status === 0" type="success" size="small" style="flex: 1;" @click="handleResolve(item.id)">标记找到</el-button>
-                <el-button type="danger" plain size="small" style="flex: 1;" @click="handleDelete(item.id)">删除</el-button>
-              </div>
+          <div class="item-info">
+            <h4 class="title">{{ item.itemName }}</h4>
+            <p class="loc"><el-icon><Location /></el-icon> {{ item.location }}</p>
+            <div class="footer">
+              <span class="time">{{ item.createTime?.split(' ')[0] }}</span>
+              <el-tag size="small" :type="item.status === 1 ? 'info' : 'success'">
+                {{ item.status === 1 ? '已结案' : '寻找中' }}
+              </el-tag>
             </div>
           </div>
         </el-card>
       </div>
     </el-card>
+
+    <el-dialog v-model="detailVisible" title="物品详细信息" width="600px" destroy-on-close>
+      <div v-if="selectedItem" class="detail-container">
+        <div class="detail-images">
+          <el-carousel height="200px" v-if="parseImages(selectedItem.images).length > 0">
+            <el-carousel-item v-for="img in parseImages(selectedItem.images)" :key="img">
+              <el-image :src="img" fit="contain" style="width:100%; height:100%" :preview-src-list="parseImages(selectedItem.images)" />
+            </el-carousel-item>
+          </el-carousel>
+          <el-empty v-else description="发布者未上传图片" :image-size="60" />
+        </div>
+
+        <div class="detail-text">
+          <h2 class="d-title">{{ selectedItem.itemName }}</h2>
+          <el-descriptions :column="1" border>
+            <el-descriptions-item label="相关地点">{{ selectedItem.location }}</el-descriptions-item>
+            <el-descriptions-item label="详细描述">{{ selectedItem.description || '无详细描述' }}</el-descriptions-item>
+            <el-descriptions-item label="发布时间">{{ selectedItem.createTime }}</el-descriptions-item>
+            <el-descriptions-item label="联系方式" v-if="isClaimed">
+              <span class="contact-highlight">{{ selectedItem.contactInfo }}</span>
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+
+        <div class="comment-section">
+          <p class="section-title">💬 留言板</p>
+          <div class="comment-list">
+             <div v-for="c in comments" :key="c.id" class="comment-item">
+                <span class="c-user">同学{{ c.userId.toString().slice(-4) }}:</span>
+                <span class="c-content">{{ c.content }}</span>
+             </div>
+             <el-empty v-if="comments.length === 0" description="暂无留言，可询问物品细节" :image-size="40" />
+          </div>
+          <div class="comment-input">
+            <el-input v-model="newComment" placeholder="询问物品细节..." size="small">
+              <template #append>
+                <el-button @click="sendComment">发送</el-button>
+              </template>
+            </el-input>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="detail-footer">
+          <el-button @click="detailVisible = false">关闭</el-button>
+          <el-button 
+            v-if="selectedItem?.status === 0 && selectedItem?.publisherId !== currentUserId" 
+            type="success" 
+            @click="handleClaim"
+          >
+            确认认领并查看联系方式
+          </el-button>
+          <span v-if="selectedItem?.publisherId === currentUserId" class="tip">这是你发布的物品信息</span>
+        </div>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="publishVisible" title="发布失物/招领信息" width="500px" append-to-body>
       <el-form ref="publishFormRef" :model="form" :rules="rules" label-width="90px">
@@ -90,12 +124,12 @@
         
         <el-form-item label="物品类别" prop="category">
           <el-select v-model="form.category" placeholder="选择类别" style="width: 100%;">
-              <el-option label="证件" value="证件" />
-              <el-option label="电子产品" value="电子产品" />
-              <el-option label="学习用品" value="学习用品" />
-              <el-option label="生活用品" value="生活用品" />
-              <el-option label="其他" value="其他" />
-            </el-select>
+            <el-option label="证件" value="证件" />
+            <el-option label="电子产品" value="电子产品" />
+            <el-option label="学习用品" value="学习用品" />
+            <el-option label="生活用品" value="生活用品" />
+            <el-option label="其他" value="其他" />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="地点" prop="location">
@@ -135,26 +169,24 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-// 基础数据
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
 const currentUserId = userInfo.id || 1001
+const defaultImg = 'https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png'
 const uploadHeaders = { token: localStorage.getItem('Authorization') }
-const defaultImage = 'https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png' // 默认无图占位图
 
 const loading = ref(false)
 const allItems = ref([])
 const activeTab = ref('all')
-const filter = reactive({ category: '', keyword: '' })
+const filter = reactive({ keyword: '', category: '' })
 
-// 发布表单数据
+// 发布逻辑相关变量
 const publishVisible = ref(false)
 const submitting = ref(false)
 const publishFormRef = ref(null)
 const fileList = ref([])
 
-// 这里的字段要与你后端的 BizLostFound 实体类对应
 const form = reactive({
-  type: 0, // 0:寻物, 1:招领
+  type: 0,
   title: '',
   category: '',
   location: '',
@@ -171,54 +203,43 @@ const rules = {
   contact: [{ required: true, message: '请输入联系方式以便归还', trigger: 'blur' }]
 }
 
-// 辅助方法：解析图片 JSON
-const safeParseImages = (imgStr) => {
-  if (!imgStr) return []
-  try { return JSON.parse(imgStr) } catch (e) { return [imgStr] }
-}
-const safeGetFirstImage = (imgStr) => {
-  const arr = safeParseImages(imgStr)
-  return arr.length > 0 ? arr[0] : null
-}
+// 详情与认领逻辑变量
+const detailVisible = ref(false)
+const selectedItem = ref(null)
+const isClaimed = ref(false) 
+const comments = ref([])
+const newComment = ref('')
 
-// 获取大厅列表
+const parseImages = (str) => { try { return JSON.parse(str) || [] } catch { return [] } }
+const getFirstImage = (str) => parseImages(str)[0]
+
 const fetchList = async () => {
   loading.value = true
   try {
     const res = await request.get('/lost-found/list')
     allItems.value = res || []
-  } catch (e) {
-    console.error(e)
-  } finally {
+  } catch (e) { console.error(e) } finally {
     loading.value = false
   }
 }
 
-// 纯前端的高效筛选逻辑
+// 高效的前端过滤计算属性
 const filteredList = computed(() => {
-  return allItems.value.filter(item => {
-    // 1. Tab 过滤
-    if (activeTab.value === 'lost' && item.type !== 0) return false
-    if (activeTab.value === 'found' && item.type !== 1) return false
-    if (activeTab.value === 'my' && item.publisherId !== currentUserId) return false
+  return allItems.value.filter(i => {
+    if (activeTab.value === 'lost' && i.type !== 0) return false
+    if (activeTab.value === 'found' && i.type !== 1) return false
+    if (activeTab.value === 'my' && i.publisherId !== currentUserId) return false
     
-    // 2. 类别过滤
-    if (filter.category && item.category !== filter.category) return false
+    // 类别过滤（解析中括号里的分类，例如 [电子产品] xxx）
+    if (filter.category && !i.itemName.includes(`[${filter.category}]`)) return false
     
-    // 3. 关键字过滤
-    if (filter.keyword) {
-      const kw = filter.keyword.toLowerCase()
-      const matchTitle = item.title && item.title.toLowerCase().includes(kw)
-      const matchLoc = item.location && item.location.toLowerCase().includes(kw)
-      if (!matchTitle && !matchLoc) return false
-    }
-    
+    // 关键字过滤
+    if (filter.keyword && !i.itemName.includes(filter.keyword)) return false
     return true
   })
 })
 
-const handleFilter = () => { /* 触发 computed 更新 */ }
-
+// === 打开与提交发布 ===
 const openPublishDialog = () => {
   if(publishFormRef.value) publishFormRef.value.resetFields()
   fileList.value = []
@@ -232,14 +253,12 @@ const submitPublish = () => {
       try {
         const imagesToSubmit = fileList.value.map(file => file.url || (file.response && file.response.data))
         
-        // 【核心修复：字段名称翻译与重组】
+        // 将分类和标题拼在一起传给后端的 itemName 字段
         const submitData = {
           type: form.type,
-          // 将分类和标题拼在一起传给后端的 itemName 字段
           itemName: `[${form.category}] ${form.title}`, 
           location: form.location,
           description: form.description,
-          // 将前端的 contact 翻译成后端需要的 contactInfo 字段
           contactInfo: form.contact, 
           images: JSON.stringify(imagesToSubmit.filter(Boolean)),
           publisherId: currentUserId
@@ -249,6 +268,8 @@ const submitPublish = () => {
         ElMessage.success('发布成功！愿物品早日物归原主。')
         publishVisible.value = false
         fetchList()
+      } catch (error) {
+        console.error(error)
       } finally {
         submitting.value = false
       }
@@ -256,89 +277,71 @@ const submitPublish = () => {
   })
 }
 
-// 点击联系发布者（务实做法：直接弹窗显示联系方式）
-const viewContact = (item) => {
-  ElMessageBox.alert(
-    `<strong>联系方式：</strong><br/><span style="font-size:18px; color:#409EFF;">${item.contact || '发布者未留下联系方式'}</span><br/><br/><span style="font-size:12px;color:#999;">请备注：在校园失物招领大厅看到的</span>`, 
-    '联系发布者', 
-    { dangerouslyUseHTMLString: true, confirmButtonText: '我知道了' }
-  )
+// === 详情与留言逻辑 ===
+const showDetails = async (item) => {
+  selectedItem.value = item
+  isClaimed.value = item.status === 1 
+  detailVisible.value = true
+  loadComments(item.id)
 }
 
-// 我的发布：标记已结案（需要后端支持更新状态）
-const handleResolve = async (id) => {
+const loadComments = async (itemId) => {
   try {
-    await ElMessageBox.confirm('确认该物品已经找到/归还了吗？', '结案确认')
-    // 如果后端没有专门的 resolve 接口，我们可以用通用的 update 接口，这里预留了专门的语意化接口
-    await request.post(`/lost-found/resolve/${id}`)
-    ElMessage.success('已标记为结案，太棒了！')
-    fetchList()
+    const res = await request.get(`/lost-found/comments/${itemId}`)
+    comments.value = res || []
+  } catch (error) {
+    comments.value = []
+  }
+}
+
+const sendComment = async () => {
+  if(!newComment.value) return
+  try {
+    await request.post('/lost-found/comment/add', { 
+      itemId: selectedItem.value.id, 
+      content: newComment.value, 
+      userId: currentUserId 
+    })
+    ElMessage.success('留言成功！')
+    newComment.value = ''
+    loadComments(selectedItem.value.id) // 重新加载留言
+  } catch (error) {}
+}
+
+const handleClaim = async () => {
+  try {
+    await ElMessageBox.confirm('确认要认领/找回该物品吗？确认后发布者将收到系统通知。', '认领确认')
+    await request.post(`/lost-found/claim/${selectedItem.value.id}?claimerId=${currentUserId}`)
+    ElMessage.success('认领请求已发送，发布者已收到提醒！')
+    isClaimed.value = true 
+    fetchList() 
   } catch (e) {}
 }
 
-// 我的发布：删除
-const handleDelete = async (id) => {
-  try {
-    await ElMessageBox.confirm('确定要删除这条发布记录吗？', '删除确认', { type: 'warning' })
-    await request.post(`/lost-found/delete/${id}`)
-    ElMessage.success('删除成功')
-    fetchList()
-  } catch (e) {}
-}
-
-onMounted(() => {
-  fetchList()
-})
+onMounted(fetchList)
 </script>
 
 <style scoped>
-.lost-found-page { padding-bottom: 20px; }
-.main-card { border-radius: 12px; border: none; min-height: 600px; }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.header-left { display: flex; align-items: center; font-weight: bold; font-size: 16px; color: #333; }
-.header-left .emoji { font-size: 20px; margin-right: 8px; }
-.header-right { display: flex; align-items: center; }
-
-:deep(.el-tabs__nav-wrap::after) { height: 1px; background-color: #f0f0f0; }
-:deep(.el-tabs__item) { font-size: 15px; padding: 0 20px; height: 50px; line-height: 50px; }
-
-/* 瀑布流卡片网格布局 */
-.items-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.item-card {
-  border-radius: 10px;
-  transition: all 0.3s;
-  border: 1px solid #ebeef5;
-  display: flex;
-  flex-direction: column;
-}
+.items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; }
+.item-card { cursor: pointer; transition: transform 0.2s; border-radius: 10px; overflow: hidden; }
 .item-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); }
+.item-img-box { position: relative; height: 150px; }
+.type-tag { position: absolute; top: 0; left: 0; padding: 4px 10px; color: white; font-size: 12px; border-bottom-right-radius: 10px; font-weight: bold; }
+.type-tag.lost { background: #F56C6C; }
+.type-tag.found { background: #67C23A; }
+.item-info { padding: 12px; }
+.item-info .title { margin: 0 0 8px; font-size: 15px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-info .loc { font-size: 13px; color: #999; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-info .footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
 
-.item-image-wrapper { position: relative; height: 160px; width: 100%; background: #f5f7fa; }
-.item-image { width: 100%; height: 100%; }
-
-/* 左上角寻物/招领角标 */
-.type-badge {
-  position: absolute; top: 0; left: 0; padding: 4px 10px; font-size: 12px; color: white; font-weight: bold; border-bottom-right-radius: 10px;
-}
-.badge-lost { background: rgba(245, 108, 108, 0.9); } /* 红色代表丢东西，比较着急 */
-.badge-found { background: rgba(103, 194, 58, 0.9); } /* 绿色代表捡到东西，带来希望 */
-
-/* 右上角结案角标 */
-.status-badge {
-  position: absolute; top: 10px; right: 10px; padding: 2px 8px; font-size: 12px; border-radius: 12px;
-}
-.resolved { background: rgba(0,0,0,0.6); color: white; }
-
-.item-content { padding: 15px; flex: 1; display: flex; flex-direction: column; }
-.item-title { font-weight: bold; font-size: 15px; margin-bottom: 8px; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.item-desc { font-size: 13px; color: #666; margin-bottom: 8px; display: flex; align-items: center; }
-.location-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.item-time { font-size: 12px; color: #999; margin-bottom: 15px; display: flex; align-items: center; gap: 4px; }
-.item-footer { margin-top: auto; } /* 把按钮挤到最底部 */
+.detail-container { display: flex; flex-direction: column; gap: 20px; }
+.d-title { margin: 0; color: #409EFF; }
+.contact-highlight { font-size: 18px; color: #E6A23C; font-weight: bold; }
+.comment-section { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+.section-title { font-weight: bold; margin-bottom: 10px; display: block; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+.comment-list { max-height: 150px; overflow-y: auto; margin-bottom: 10px; }
+.comment-item { font-size: 13px; margin-bottom: 8px; }
+.c-user { color: #909399; margin-right: 5px; }
+.detail-footer { display: flex; justify-content: flex-end; align-items: center; gap: 15px; }
+.tip { color: #999; font-size: 13px; }
 </style>
