@@ -40,6 +40,12 @@ const router = createRouter({
 		  name: 'Course',
 		  component: () => import('@/views/Course.vue')
 	    },
+		// 在 children 数组中加入：
+        {
+          path: 'lost-found',
+          name: 'LostFound',
+          component: () => import('@/views/LostFound.vue')
+        },
 		{
 		  path: 'admin/repair',
 		  name: 'AdminRepair',

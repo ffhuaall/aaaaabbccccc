@@ -30,6 +30,10 @@
             <el-icon><Service /></el-icon>
             <template #title>宿舍报修</template>
           </el-menu-item>
+		  <el-menu-item index="/lost-found">
+            <el-icon><Notification /></el-icon>
+            <template #title>失物招领</template>
+          </el-menu-item>
         </template>
 
         <template v-if="userInfo.roleId === 2">
