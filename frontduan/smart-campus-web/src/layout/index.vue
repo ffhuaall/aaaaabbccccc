@@ -71,6 +71,10 @@
 		    <el-icon><Tools /></el-icon>
 		    <template #title>宿舍报修管理</template>
 		  </el-menu-item>
+		  <el-menu-item index="/admin/lost-found-manage">
+		    <el-icon><Search /></el-icon>
+		    <span>失物招领管理</span>
+		  </el-menu-item>
         </template>
       </el-menu>   
       <div class="bottom-action">

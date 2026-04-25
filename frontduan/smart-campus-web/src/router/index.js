@@ -75,6 +75,11 @@ const router = createRouter({
 		  path: 'admin/repair-all',
 		  name: 'SuperRepairManage',
 		  component: () => import('@/views/admin/SuperRepairManage.vue')
+		},
+		{
+		  path: 'admin/lost-found-manage', // 访问路径为 /admin/lost-found-manage
+		  name: 'SuperLostFoundManage',
+		  component: () => import('@/views/admin/SuperLostFoundManage.vue'),
 		}
         // 后续的 activity, repair, course 等页面都会继续往这里面加
       ]

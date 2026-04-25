@@ -129,4 +129,31 @@ public class BizLostFoundController {
     public Result<List<BizLostFoundComment>> getComments(@PathVariable Long itemId) {
         return Result.success(commentService.listByItemId(itemId));
     }
+
+    /**
+     * 【超管特权】强制下架/作废失物招领信息
+     * @param id 物品ID
+     */
+    @PostMapping("/cancel/{id}")
+    public Result<Boolean> cancelItem(@PathVariable Long id) {
+        BizLostFound item = lostFoundService.getById(id);
+        if (item != null) {
+            // 1. 将状态设置为 -1 (已作废)
+            item.setStatus(-1); 
+            lostFoundService.updateById(item);
+
+            // 2. 【核心改进】给发布这个帖子的学生发送违规/下架通知
+            SysMessage msg = new SysMessage();
+            msg.setReceiverId(item.getPublisherId()); 
+            msg.setTitle("系统管理通知");
+            msg.setContent("同学你好！你发布的失物招领信息【" + item.getItemName() + "】由于违规或其他原因，已被管理员强制下架作废。");
+            msg.setType("LOST_FOUND"); 
+            msg.setIsRead(0);
+            msg.setCreateTime(java.time.LocalDateTime.now());
+            messageMapper.insert(msg);
+
+            return Result.success(true);
+        }
+        return Result.error(400, "操作失败：该物品记录不存在");
+    }
 }
