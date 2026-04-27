@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -18,6 +19,15 @@ public class BizActivity {
     private String content;
     private String coverImage;
 
+    // 【新增】活动分类（学术讲座、文体演艺等）
+    private String category;
+    
+    // 【新增】活动名额上限
+    private Integer capacity;
+    
+    // 【新增】当前已报名人数（不映射到数据库表中，由后端动态统计）
+    @TableField(exist = false)
+    private Integer currentEnrollment;
     // 处理时间格式，方便前端展示
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime startTime;

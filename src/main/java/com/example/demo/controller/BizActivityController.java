@@ -42,6 +42,14 @@ public class BizActivityController {
     @GetMapping("/list")
     public Result<List<BizActivity>> list() {
         List<BizActivity> list = activityService.list();
+        
+        // 遍历活动，动态统计每个活动的已报名人数
+        for (BizActivity activity : list) {
+            QueryWrapper<BizActivityRegistration> countWrapper = new QueryWrapper<>();
+            countWrapper.eq("activity_id", activity.getId()).eq("status", 1);
+            long count = registrationMapper.selectCount(countWrapper);
+            activity.setCurrentEnrollment((int) count);
+        }
         return Result.success(list);
     }
 
@@ -70,27 +78,41 @@ public class BizActivityController {
     }
 
     //活动报名接口
-    @PostMapping("/register")
-    public Result<Boolean> registerActivity(@RequestParam Long activityId, @RequestParam Long userId) {
-        // 1. 查询该用户针对该活动的【所有】报名记录（包括取消的）
+    @PostMapping("/enroll")
+    public Result<Boolean> enrollActivity(@RequestParam Long activityId, @RequestParam Long userId) {
+        // 1. 检查活动是否存在及状态
+        BizActivity activity = activityService.getById(activityId);
+        if (activity == null || activity.getStatus() != 1) {
+            return Result.error(400, "活动不存在或不在报名状态");
+        }
+
+        // 2. 检查名额是否已满 (如果有 capacity 限制的话)
+        if (activity.getCapacity() != null && activity.getCapacity() > 0) {
+            QueryWrapper<BizActivityRegistration> countWrapper = new QueryWrapper<>();
+            countWrapper.eq("activity_id", activityId).eq("status", 1);
+            long currentCount = registrationMapper.selectCount(countWrapper);
+            if (currentCount >= activity.getCapacity()) {
+                return Result.error(400, "手慢了，该活动名额已满！");
+            }
+        }
+
+        // 3. 检查用户是否已报名
         QueryWrapper<BizActivityRegistration> wrapper = new QueryWrapper<>();
         wrapper.eq("activity_id", activityId).eq("user_id", userId);
-        
         BizActivityRegistration existingReg = registrationMapper.selectOne(wrapper);
 
         if (existingReg != null) {
-            // 如果记录存在，且状态是 1 (已报名)，才拦截
             if (existingReg.getStatus() == 1) {
                 return Result.error(400, "您已经报名过该活动啦！");
             }
-            // 【关键优化】如果记录存在但状态是 0 (被取消)，则将其“复活”为 1
+            // 之前取消过，现在重新报名
             existingReg.setStatus(1);
             existingReg.setCreateTime(LocalDateTime.now());
             registrationMapper.updateById(existingReg);
             return Result.success(true);
         }
 
-        // 2. 如果完全没记录，正常插入
+        // 4. 首次报名
         BizActivityRegistration reg = new BizActivityRegistration();
         reg.setActivityId(activityId);
         reg.setUserId(userId);
@@ -100,6 +122,7 @@ public class BizActivityController {
 
         return Result.success(true);
     }
+
     //获取当前用户已报名的活动 ID 列表
     @GetMapping("/my-registered")
     public Result<List<Long>> getMyRegisteredActivities(@RequestParam Long userId) {
@@ -114,6 +137,23 @@ public class BizActivityController {
                 .collect(Collectors.toList());
                 
         return Result.success(activityIds);
+    }
+
+    /**
+     * 【新增】取消报名接口
+     */
+    @PostMapping("/cancel-enroll")
+    public Result<Boolean> cancelEnroll(@RequestParam Long activityId, @RequestParam Long userId) {
+        QueryWrapper<BizActivityRegistration> wrapper = new QueryWrapper<>();
+        wrapper.eq("activity_id", activityId).eq("user_id", userId).eq("status", 1);
+        BizActivityRegistration reg = registrationMapper.selectOne(wrapper);
+        
+        if (reg != null) {
+            reg.setStatus(0); // 0代表已取消
+            registrationMapper.updateById(reg);
+            return Result.success(true);
+        }
+        return Result.error(400, "您未报名该活动或已被取消");
     }
 
     /**

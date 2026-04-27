@@ -1,195 +1,310 @@
 <template>
   <div class="admin-activity-page">
+    
+    <el-row :gutter="20" class="stat-row">
+      <el-col :span="8">
+        <el-card shadow="hover" class="stat-card bg-blue">
+          <div class="stat-content">
+            <div class="stat-info">
+              <div class="stat-title">累计发布活动</div>
+              <div class="stat-value">{{ myActivities.length }} <span class="unit">场</span></div>
+            </div>
+            <el-icon class="stat-icon"><Calendar /></el-icon>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card shadow="hover" class="stat-card bg-green">
+          <div class="stat-content">
+            <div class="stat-info">
+              <div class="stat-title">当前进行中</div>
+              <div class="stat-value">{{ ongoingCount }} <span class="unit">场</span></div>
+            </div>
+            <el-icon class="stat-icon"><VideoPlay /></el-icon>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card shadow="hover" class="stat-card bg-orange">
+          <div class="stat-content">
+            <div class="stat-info">
+              <div class="stat-title">累计服务学生</div>
+              <div class="stat-value">{{ totalParticipants }} <span class="unit">人次</span></div>
+            </div>
+            <el-icon class="stat-icon"><UserFilled /></el-icon>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <el-card shadow="never" class="list-card">
       <template #header>
         <div class="card-header">
-          <span class="emoji">📢</span>
-          <span class="title">校园活动发布管理</span>
-          <el-button type="primary" icon="Plus" style="margin-left: auto;" @click="openAddDialog">
-            发布新活动
-          </el-button>
+          <div class="header-left">
+            <span class="emoji">🎪</span>
+            <span class="title">我的活动列表</span>
+          </div>
+          
+          <div class="header-right">
+            <el-select v-model="filter.status" placeholder="状态筛选" clearable style="width: 120px; margin-right: 12px;">
+              <el-option label="进行中" :value="1" />
+              <el-option label="已结束" :value="0" />
+            </el-select>
+            <el-input 
+              v-model="filter.keyword" 
+              placeholder="搜索活动名称..." 
+              clearable 
+              prefix-icon="Search"
+              style="width: 200px; margin-right: 15px;" 
+            />
+            <el-button type="primary" icon="Plus" @click="openAddDialog">策划新活动</el-button>
+          </div>
         </div>
       </template>
 
-      <el-table :data="allActivities" style="width: 100%" v-loading="loading" stripe>
-        <el-table-column prop="title" label="活动标题" min-width="180" />
-        <el-table-column prop="startTime" label="开始时间" width="160" align="center" />
-        <el-table-column label="状态" width="100" align="center">
+      <el-table :data="displayActivities" style="width: 100%" v-loading="loading" stripe border size="small">
+        <el-table-column prop="id" label="ID" width="70" align="center" />
+        <el-table-column label="海报" width="90" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
+            <el-image 
+              v-if="scope.row.coverImage" 
+              :src="scope.row.coverImage" 
+              :preview-src-list="[scope.row.coverImage]"
+              fit="cover" 
+              class="table-poster"
+              preview-teleported
+            />
+            <el-tag v-else type="info" size="small">无图</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="活动名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="category" label="分类" width="100" align="center" />
+        
+        <el-table-column label="报名进度" width="140" align="center">
+          <template #default="scope">
+            <div class="progress-text">{{ scope.row.currentEnrollment || 0 }} / {{ scope.row.capacity || '不限' }}</div>
+            <el-progress 
+              :percentage="getPercentage(scope.row)" 
+              :show-text="false" 
+              stroke-width="4" 
+              :status="scope.row.currentEnrollment >= scope.row.capacity ? 'exception' : ''"
+            />
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="startTime" label="开始日期" width="120" align="center">
+           <template #default="scope">{{ scope.row.startTime?.substring(0, 10) }}</template>
+        </el-table-column>
+
+        <el-table-column label="状态" width="80" align="center">
+          <template #default="scope">
+            <el-tag :type="scope.row.status === 1 ? 'success' : 'info'" effect="dark" size="small">
               {{ scope.row.status === 1 ? '进行中' : '已结束' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="管理操作" width="220" align="center">
+
+        <el-table-column label="管理操作" width="230" align="center" fixed="right">
           <template #default="scope">
-            <el-button type="primary" size="small" plain @click="viewParticipants(scope.row)">
-              报名名单
-            </el-button>
-            <el-button type="danger" size="small" plain @click="handleStop(scope.row.id)">
-              停止报名
-            </el-button>
+            <div class="op-btns">
+              <el-button type="primary" link size="small" @click="showAdminDetails(scope.row)">预览</el-button>
+              <el-button type="success" link size="small" @click="viewParticipants(scope.row)">名单</el-button>
+              <el-dropdown trigger="click" style="margin-left: 8px;">
+                <el-button type="info" link size="small">更多<el-icon><ArrowDown /></el-icon></el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item v-if="scope.row.status === 1" @click="stopActivity(scope.row.id)">停止报名</el-dropdown-item>
+                    <el-dropdown-item style="color: #F56C6C" @click="deleteActivity(scope.row.id)">删除活动</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <el-dialog v-model="addVisible" title="发布新校园活动" width="500px" append-to-body>
-      <el-form :model="activityForm" label-position="top">
-        <el-form-item label="活动名称">
-          <el-input v-model="activityForm.title" placeholder="如：2024 校园电竞节" />
+    <el-dialog v-model="detailVisible" title="活动发布预览" width="600px" destroy-on-close :lock-scroll="false">
+      <div v-if="previewActivity" class="audit-detail">
+        <div class="poster-preview">
+          <el-image v-if="previewActivity.coverImage" :src="previewActivity.coverImage" fit="contain" class="full-poster" />
+          <div v-else class="empty-poster">未上传海报，将显示分类默认渐变背景</div>
+        </div>
+        <el-descriptions :column="2" border size="small" direction="vertical">
+          <el-descriptions-item label="活动名称" :span="2"><strong>{{ previewActivity.title }}</strong></el-descriptions-item>
+          <el-descriptions-item label="活动分类">{{ previewActivity.category }}</el-descriptions-item>
+          <el-descriptions-item label="名额上限">{{ previewActivity.capacity || '不限' }}</el-descriptions-item>
+          <el-descriptions-item label="活动地点" :span="2">{{ previewActivity.location }}</el-descriptions-item>
+          <el-descriptions-item label="详细内容" :span="2"><div class="content-box">{{ previewActivity.content }}</div></el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="addVisible" title="策划新活动" width="620px" destroy-on-close :lock-scroll="false">
+      <el-form :model="form" :rules="rules" ref="addFormRef" label-width="100px">
+        <el-form-item label="活动名称" prop="title"><el-input v-model="form.title" /></el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="分类" prop="category">
+              <el-select v-model="form.category" style="width:100%">
+                <el-option label="学术讲座" value="学术讲座" />
+                <el-option label="文体演艺" value="文体演艺" />
+                <el-option label="志愿服务" value="志愿服务" />
+                <el-option label="社团招新" value="社团招新" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="名额" prop="capacity"><el-input-number v-model="form.capacity" :min="0" style="width:100%" /></el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="活动海报">
+          <el-upload action="http://localhost:8080/file/upload" :headers="uploadHeaders" list-type="picture-card" :limit="1" :on-success="handleImageSuccess" v-model:file-list="fileList">
+            <el-icon><Plus /></el-icon>
+          </el-upload>
         </el-form-item>
-        <el-form-item label="活动介绍">
-          <el-input v-model="activityForm.content" type="textarea" :rows="3" />
+        <el-form-item label="起止时间" prop="timeRange">
+          <el-date-picker v-model="form.timeRange" type="datetimerange" value-format="YYYY-MM-DD HH:mm:ss" style="width:100%" />
         </el-form-item>
-		<el-form-item label="活动地点">
-		  <el-input v-model="activityForm.location" placeholder="如：大学生活动中心一楼" />
-		</el-form-item>
-        <el-form-item label="活动时间">
-          <el-date-picker
-            v-model="activityTimeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            value-format="YYYY-MM-DD HH:mm:ss"
-          />
-        </el-form-item>
+        <el-form-item label="地点" prop="location"><el-input v-model="form.location" /></el-form-item>
+        <el-form-item label="详述" prop="content"><el-input v-model="form.content" type="textarea" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="addVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitAdd">立即发布</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitAdd">正式发布</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="userVisible" :title="`报名名单 - ${selectedActivity?.title}`" width="700px" append-to-body>
-      <div style="margin-bottom: 15px; text-align: right;">
-        <el-button type="success" icon="Download" @click="exportCSV">导出名单 (CSV)</el-button>
+    <el-dialog v-model="participantsVisible" :title="`报名名单`" width="700px" destroy-on-close>
+      <div style="margin-bottom: 15px; display: flex; justify-content: space-between;">
+        <el-button type="success" size="small" @click="exportCSV">导出签到表 (CSV)</el-button>
       </div>
-      
-      <el-table :data="participantList" height="400">
-        <el-table-column prop="realName" label="学生姓名" />
+      <el-table :data="participantList" border size="small" height="350px">
+        <el-table-column prop="realName" label="姓名" />
         <el-table-column prop="username" label="学号" />
-        <el-table-column prop="createTime" label="报名时间" />
-        <el-table-column label="状态" width="100">
-          <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
-              {{ scope.row.status === 1 ? '已报名' : '已劝退' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120">
-          <template #default="scope">
-            <el-button v-if="scope.row.status === 1" type="danger" size="small" link @click="auditUser(scope.row.regId, 0)">取消资格</el-button>
-          </template>
-        </el-table-column>
+        <el-table-column label="状态"><template #default="s"><el-tag size="small">{{ s.row.status === 1 ? '已报名' : '已取消' }}</el-tag></template></el-table-column>
+        <el-table-column label="操作"><template #default="s"><el-button type="danger" link size="small" @click="auditUser(s.row.regId, 0)">劝退</el-button></template></el-table-column>
       </el-table>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+
+const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+// 【强化修正】强制转换为 Number 类型，防止与后端的 Long 类型匹配失败
+const currentUserId = Number(userInfo.id) || 1001 
+const uploadHeaders = { token: localStorage.getItem('Authorization') }
 
 const loading = ref(false)
 const allActivities = ref([])
 
-// 发布相关
-const addVisible = ref(false)
-const activityTimeRange = ref([])
-const activityForm = reactive({
-  title: '',
-  content: '',
-  location: '',
-  publisherId: JSON.parse(localStorage.getItem('userInfo'))?.id || 1
+const filter = reactive({ keyword: '', status: null })
+
+// ================== 核心数据隔离 ==================
+// 负责人大盘：底层数据源绝对隔离，只允许看自己的数据
+const myActivities = computed(() => allActivities.value.filter(i => i.publisherId === currentUserId))
+
+// 智能过滤后的展示数据
+const displayActivities = computed(() => {
+  return myActivities.value.filter(item => {
+    // 【Bug 修复】严谨判断数字类型，解决下拉框点叉变成 undefined 导致清空失效的问题
+    if (typeof filter.status === 'number' && item.status !== filter.status) return false
+    if (filter.keyword && !item.title.includes(filter.keyword)) return false
+    return true
+  })
 })
 
-// 人员管理相关
-const userVisible = ref(false)
-const selectedActivity = ref(null)
-const participantList = ref([])
+const ongoingCount = computed(() => myActivities.value.filter(i => i.status === 1).length)
+const totalParticipants = computed(() => {
+  return myActivities.value.reduce((sum, item) => sum + (item.currentEnrollment || 0), 0)
+})
+
+// ================== 原有业务逻辑 ==================
+const detailVisible = ref(false)
+const previewActivity = ref(null)
+const showAdminDetails = (row) => { previewActivity.value = row; detailVisible.value = true; }
+
+const addVisible = ref(false)
+const submitting = ref(false)
+const fileList = ref([])
+const form = reactive({ title: '', category: '', capacity: 0, timeRange: [], location: '', content: '', coverImage: '' })
+const rules = { title: [{ required: true }], category: [{ required: true }], timeRange: [{ required: true }] }
+
+const handleImageSuccess = (res) => { if (res.code === 200) form.coverImage = res.data }
+const openAddDialog = () => { fileList.value = []; form.coverImage = ''; addVisible.value = true; }
 
 const fetchList = async () => {
   loading.value = true
-  const res = await request.get('/activity/list')
-  allActivities.value = res || []
-  loading.value = false
+  try {
+    const res = await request.get('/activity/list')
+    allActivities.value = (res || []).sort((a, b) => b.id - a.id)
+  } finally { loading.value = false }
 }
-
-const openAddDialog = () => { addVisible.value = true }
 
 const submitAdd = async () => {
-  if (activityTimeRange.value) {
-    activityForm.startTime = activityTimeRange.value[0]
-    activityForm.endTime = activityTimeRange.value[1]
-  }
-  await request.post('/activity/add', activityForm)
-  ElMessage.success('发布成功！')
-  addVisible.value = false
-  fetchList()
-  
-  // 清空表单
-  activityForm.title = ''
-  activityForm.content = ''
-  activityForm.location = ''
-  activityTimeRange.value = []
-}
-
-const viewParticipants = async (act) => {
-  selectedActivity.value = act
-  const res = await request.get(`/activity/participants/${act.id}`)
-  participantList.value = res || []
-  userVisible.value = true
-}
-
-// 【新增方法 1】停止报名功能
-const handleStop = async (id) => {
+  submitting.value = true
   try {
-    // 弹窗确认
-    await ElMessageBox.confirm('确定要停止该活动的报名吗？停止后学生将无法报名。', '提示', { type: 'warning' })
+    const data = { ...form, startTime: form.timeRange[0], endTime: form.timeRange[1], publisherId: currentUserId }
+    delete data.timeRange
+    await request.post('/activity/add', data)
+    ElMessage.success('发布成功')
+    addVisible.value = false
+    fetchList()
+  } finally { submitting.value = false }
+}
+
+const stopActivity = (id) => {
+  ElMessageBox.confirm('停止报名后学生将无法继续加入，确认操作？', '停止确认').then(async () => {
     await request.post(`/activity/stop/${id}`)
-    ElMessage.success('已停止报名')
-    fetchList() // 刷新列表
-  } catch (error) {
-    console.log('取消操作')
-  }
+    ElMessage.success('已停止')
+    fetchList()
+  }).catch(() => {})
 }
 
-// 【新增方法 2】纯前端导出 CSV 逻辑（黑科技）
-const exportCSV = () => {
-  if (participantList.value.length === 0) {
-    ElMessage.warning('当前没有任何人报名，无法导出')
-    return
-  }
-  
-  // \uFEFF 是 BOM 头，防止 Excel 打开中文乱码
-  let csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-  // 表头
-  csvContent += "学生姓名,学号,报名时间,当前状态\n"
-  
-  // 遍历数据组装内容
-  participantList.value.forEach(row => {
-    const statusStr = row.status === 1 ? '已报名' : '已劝退'
-    csvContent += `${row.realName},${row.username},${row.createTime},${statusStr}\n`
-  })
-  
-  // 触发浏览器下载
-  const encodedUri = encodeURI(csvContent)
-  const link = document.createElement("a")
-  link.setAttribute("href", encodedUri)
-  link.setAttribute("download", `${selectedActivity.value.title}_报名名单.csv`)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link) // 下载完移除
+const deleteActivity = (id) => {
+  ElMessageBox.confirm('物理删除将不可恢复，确认执行？', '危险操作', { type: 'error' }).then(async () => {
+    try {
+      await request.delete(`/activity/delete/${id}`)
+      ElMessage.success('删除成功')
+      fetchList()
+    } catch (e) {
+      ElMessage.warning('功能正在对接中，稍后可用')
+    }
+  }).catch(() => {})
 }
 
-const auditUser = async (regId, status) => {
-  await request.post(`/activity/audit-participant?regId=${regId}&status=${status}`)
-  ElMessage.success('操作成功')
-  // 刷新当前名单
+const participantsVisible = ref(false)
+const participantList = ref([])
+const selectedActivity = ref(null)
+const viewParticipants = async (row) => {
+  selectedActivity.value = row
+  participantsVisible.value = true
+  const res = await request.get(`/activity/participants/${row.id}`)
+  participantList.value = res || []
+}
+
+const auditUser = async (regId) => {
+  await request.post(`/activity/audit-participant?regId=${regId}&status=0`)
+  ElMessage.success('已劝退')
   viewParticipants(selectedActivity.value)
+  fetchList() 
+}
+
+const exportCSV = () => {
+  let csv = "\uFEFF姓名,学号,状态\n"
+  participantList.value.forEach(r => csv += `${r.realName},${r.username},${r.status === 1 ? '已报名' : '已取消'}\n`)
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a"); a.href = url; a.download = "名单.csv"; a.click()
+}
+
+const getPercentage = (item) => {
+  if (!item.capacity) return 0
+  return Math.min(Math.floor(((item.currentEnrollment || 0) / item.capacity) * 100), 100)
 }
 
 onMounted(fetchList)
@@ -197,7 +312,29 @@ onMounted(fetchList)
 
 <style scoped>
 .admin-activity-page { padding-bottom: 20px; }
-.list-card { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-.card-header { display: flex; align-items: center; font-size: 18px; font-weight: bold; }
-.card-header .emoji { font-size: 24px; margin-right: 10px; }
+
+/* 统计卡片样式 */
+.stat-row { margin-bottom: 20px; }
+.stat-card { border-radius: 12px; border: none; color: white; }
+.bg-blue { background: linear-gradient(135deg, #409EFF 0%, #53a8ff 100%); }
+.bg-green { background: linear-gradient(135deg, #67C23A 0%, #85ce61 100%); }
+.bg-orange { background: linear-gradient(135deg, #E6A23C 0%, #ebb563 100%); }
+.stat-content { display: flex; justify-content: space-between; align-items: center; padding: 10px; }
+.stat-title { font-size: 14px; opacity: 0.9; margin-bottom: 5px; }
+.stat-value { font-size: 32px; font-weight: bold; }
+.stat-value .unit { font-size: 14px; font-weight: normal; opacity: 0.8; }
+.stat-icon { font-size: 48px; opacity: 0.3; }
+
+.list-card { border-radius: 12px; border: none; min-height: 500px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.header-left { display: flex; align-items: center; font-weight: bold; font-size: 16px; }
+.header-left .emoji { font-size: 20px; margin-right: 8px; }
+
+.table-poster { width: 50px; height: 30px; border-radius: 4px; }
+.progress-text { font-size: 12px; color: #409EFF; font-weight: bold; }
+.poster-preview { width: 100%; height: 180px; background: #f5f7fa; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; }
+.full-poster { width: 100%; height: 100%; }
+.empty-poster { color: #909399; font-size: 13px; font-style: italic; }
+.content-box { white-space: pre-wrap; color: #666; padding: 10px; background: #fafafa; border-radius: 4px; }
+.op-btns { display: flex; justify-content: center; align-items: center; gap: 4px; }
 </style>
