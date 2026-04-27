@@ -8,6 +8,11 @@
             <span class="title">全校失物招领审计中心</span>
           </div>
           <div class="header-right">
+            <el-select v-model="filter.type" placeholder="信息类型" clearable style="width: 110px; margin-right: 12px;" @change="fetchList">
+              <el-option label="寻物启事" :value="0" />
+              <el-option label="失物招领" :value="1" />
+            </el-select>
+
             <el-select v-model="filter.category" placeholder="物品类别" clearable style="width: 120px; margin-right: 12px;" @change="fetchList">
               <el-option label="证件" value="证件" />
               <el-option label="电子产品" value="电子产品" />
@@ -15,17 +20,20 @@
               <el-option label="生活用品" value="生活用品" />
               <el-option label="其他" value="其他" />
             </el-select>
+            
             <el-select v-model="filter.status" placeholder="工单状态" clearable style="width: 120px; margin-right: 12px;" @change="fetchList">
               <el-option label="寻找中" :value="0" />
               <el-option label="已结案" :value="1" />
               <el-option label="已作废" :value="-1" />
             </el-select>
+            
             <el-input 
               v-model="filter.keyword" 
               placeholder="搜索物品/地点/学号..." 
               clearable 
               style="width: 220px; margin-right: 12px;"
               @keyup.enter="fetchList"
+              @clear="fetchList"
             />
             <el-button type="primary" plain @click="fetchList">刷新数据</el-button>
           </div>
@@ -65,7 +73,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-if="scope.row.status !== -1" icon="CircleClose" @click="handleForceCancel(scope.row.id)">强制下架</el-dropdown-item>
-                    <el-dropdown-item icon="Delete" style="color: #F56C6C" @click="handleDelete(scope.row.id)">删除</el-dropdown-item>
+                    <el-dropdown-item icon="Delete" style="color: #F56C6C" @click="handleDelete(scope.row.id)">物理删除</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -112,7 +120,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
 const allList = ref([])
-const filter = reactive({ category: '', status: null, keyword: '' })
+
+// 【新增】type 字段，用于区分寻物和招领
+const filter = reactive({ type: null, category: '', status: null, keyword: '' })
 
 // 审计详情
 const auditVisible = ref(false)
@@ -130,12 +140,17 @@ const fetchList = async () => {
     const res = await request.get('/lost-found/list')
     let data = res || []
     
+    // 0. 【新增】类型检索 (寻物启事/失物招领)
+    if (typeof filter.type === 'number') {
+      data = data.filter(i => i.type === filter.type)
+    }
+
     // 1. 分类检索
     if (filter.category) {
       data = data.filter(i => i.itemName.includes(`[${filter.category}]`))
     }
     
-    // 2. 【核心修复】状态检索：只有当 status 是明确的数字时（包含 0），才进行过滤
+    // 2. 状态检索 (严谨的数字判断，防止清空时报错)
     if (typeof filter.status === 'number') {
       data = data.filter(i => i.status === filter.status)
     }
@@ -158,17 +173,20 @@ const openAuditDetail = async (row) => {
   selectedItem.value = row
   auditVisible.value = true
   // 加载该物品的所有留言
-  const res = await request.get(`/lost-found/comments/${row.id}`)
-  comments.value = res || []
+  try {
+    const res = await request.get(`/lost-found/comments/${row.id}`)
+    comments.value = res || []
+  } catch (error) {
+    comments.value = []
+  }
 }
 
 const deleteComment = (id) => {
   ElMessageBox.confirm('确定要删除这条留言吗？此操作不可恢复。', '审计确认').then(async () => {
-    // 假设你有删除评论的接口
-    // await request.post(`/lost-found/comment/delete/${id}`)
+    await request.post(`/lost-found/comment/delete/${id}`)
     ElMessage.success('留言已成功删除')
     openAuditDetail(selectedItem.value) // 重新加载
-  })
+  }).catch(() => {})
 }
 
 const handleForceCancel = (id) => {
@@ -176,15 +194,15 @@ const handleForceCancel = (id) => {
     await request.post(`/lost-found/cancel/${id}`)
     ElMessage.success('已强制下架')
     fetchList()
-  })
+  }).catch(() => {})
 }
 
 const handleDelete = (id) => {
-  ElMessageBox.confirm('删除将不可恢复，确认执行？', '危险操作', { type: 'error' }).then(async () => {
+  ElMessageBox.confirm('物理删除将不可恢复，确认执行？', '危险操作', { type: 'error' }).then(async () => {
     await request.post(`/lost-found/delete/${id}`)
     ElMessage.success('数据已从底层删除')
     fetchList()
-  })
+  }).catch(() => {})
 }
 
 onMounted(fetchList)

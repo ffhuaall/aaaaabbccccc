@@ -47,7 +47,7 @@ public class SysUserController {
     public Result<Boolean> saveUser(@RequestBody SysUser user) {
         if (user.getId() == null) {
             // 新增账号时，给个初始默认密码：123456
-            user.setPassword("123456");
+            user.setPassword("$2a$10$TxNe8O5NA7j2tLbXbTGGfu2u9t.AFYqrvs4QWyNdhZl95");
             user.setStatus(1); // 默认状态正常
             user.setCreateTime(java.time.LocalDateTime.now());
         }
@@ -72,7 +72,7 @@ public class SysUserController {
     public Result<Boolean> resetPwd(@PathVariable Long id) {
         SysUser user = new SysUser();
         user.setId(id);
-        user.setPassword("123456");
+        user.setPassword("$2a$10$TxNe8O5NA7j2tLbXbTGGfu2u9t.AFYqrvs4QWyNdhZl95");
         return Result.success(userService.updateById(user));
     }
 

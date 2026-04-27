@@ -29,21 +29,21 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/login").permitAll() // 仅放行登录接口
-                .requestMatchers("/activity/**").permitAll() // 【注释/删除这一行，开始保护活动接口】
-                .requestMatchers("/classroom/**").permitAll()
-                .requestMatchers("/course/**").permitAll()
-                .requestMatchers("/dashboard/**").permitAll()
-                .requestMatchers("/lost-found/**").permitAll() // 【新增】放行失物招领模块测试
-                .requestMatchers("/repair/**").permitAll()
-                .requestMatchers("/message/**").permitAll()
-                .requestMatchers("/file/upload").permitAll()
-                .requestMatchers("/picture/**").permitAll()
-                .requestMatchers("/user**").permitAll()
-                .anyRequest().authenticated()
-            );
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+            //.authorizeHttpRequests(auth -> auth
+            //      .requestMatchers("/auth/login").permitAll() // 仅放行登录接口
+            //     // .requestMatchers("/activity/**").permitAll() // 【注释/删除这一行，开始保护活动接口】
+            //     // .requestMatchers("/classroom/**").permitAll()
+            //     // .requestMatchers("/course/**").permitAll()
+            //     // .requestMatchers("/dashboard/**").permitAll()
+            //     // .requestMatchers("/lost-found/**").permitAll() // 【新增】放行失物招领模块测试
+            //     // .requestMatchers("/repair/**").permitAll()
+            //     // .requestMatchers("/message/**").permitAll()
+            //     // .requestMatchers("/file/upload").permitAll()
+            //     // .requestMatchers("/picture/**").permitAll()
+            //     // .requestMatchers("/user**").permitAll()
+            //     // .anyRequest().authenticated()
+            //);
 
         // 【新增】将我们的 JWT 过滤器添加到 UsernamePasswordAuthenticationFilter 之前
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
