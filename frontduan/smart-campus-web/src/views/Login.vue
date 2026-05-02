@@ -1,79 +1,137 @@
 <template>
-  <div class="login-container">
-    <el-card class="login-box">
-      <h2 class="title">智慧校园一站式服务门户</h2>
-      <el-form ref="loginFormRef" :model="loginForm" :rules="rules" label-width="0">
-        <el-form-item prop="username">
-          <el-input 
-            v-model="loginForm.username" 
-            placeholder="请输入学号/工号" 
-            prefix-icon="User" />
-        </el-form-item>
-        
-        <el-form-item prop="password">
-          <el-input 
-            v-model="loginForm.password" 
-            type="password" 
-            placeholder="请输入密码" 
-            prefix-icon="Lock" 
-            show-password 
-            @keyup.enter="handleLogin" />
-        </el-form-item>
+  <div class="portal-login-container">
+    
+    <!-- 左侧品牌海报区 -->
+    <div class="login-hero">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="logo-box">
+          <span class="emoji">🎓</span>
+          <span class="logo-text">Smart Campus</span>
+        </div>
+        <div class="slogan-box">
+          <h1 class="slogan-title">连接校园每一刻</h1>
+          <p class="slogan-desc">智慧校园一站式服务门户 · 全面赋能你的大学生活</p>
+          <div class="role-tags">
+            <el-tag effect="dark" type="primary" round size="large">学生通道</el-tag>
+            <el-tag effect="dark" type="success" round size="large">教职工入口</el-tag>
+            <el-tag effect="dark" type="warning" round size="large">管理后台</el-tag>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <el-form-item>
-          <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin">
-            登 录
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    <!-- 右侧交互表单区 -->
+    <div class="login-panel">
+      <div class="login-form-box">
+        <div class="form-header">
+          <h2>欢迎登录</h2>
+          <p>Welcome to the Campus Portal</p>
+        </div>
+
+        <el-form ref="loginFormRef" :model="loginForm" :rules="rules" size="large" label-width="0">
+          <el-form-item prop="username">
+            <el-input 
+              v-model="loginForm.username" 
+              placeholder="请输入学号/工号" 
+              prefix-icon="User"
+              class="custom-input" 
+            />
+          </el-form-item>
+          
+          <el-form-item prop="password">
+            <el-input 
+              v-model="loginForm.password" 
+              type="password" 
+              placeholder="请输入密码" 
+              prefix-icon="Lock" 
+              show-password 
+              @keyup.enter="handleLogin"
+              class="custom-input" 
+            />
+          </el-form-item>
+
+          <div class="form-options">
+            <el-checkbox v-model="rememberMe">记住账号</el-checkbox>
+            <el-link type="primary" :underline="false">忘记密码？</el-link>
+          </div>
+
+          <el-form-item style="margin-top: 30px;">
+            <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin" round>
+              登 录 系 统
+            </el-button>
+          </el-form-item>
+          
+          <div class="form-tips">
+            <span>新生默认密码为身份证后六位，若遇问题请联系辅导员。</span>
+          </div>
+        </el-form>
+      </div>
+      
+      <div class="panel-footer">
+        © 2024 智慧校园一站式服务平台 | 网络信息中心技术支持
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import request from '@/utils/request' // 引入我们刚刚封装的请求拦截器
-// 引入 Element-Plus 的图标
+import request from '@/utils/request'
 import { User, Lock } from '@element-plus/icons-vue' 
 
 const router = useRouter()
 const loginFormRef = ref(null)
 const loading = ref(false)
+const rememberMe = ref(false)
 
-// 表单数据绑定
 const loginForm = reactive({
-  username: 'student01', // 为了测试方便，直接默认填入测试账号
-  password: '123456'
+  username: '', 
+  password: ''
 })
 
-// 表单校验规则
 const rules = {
   username: [{ required: true, message: '账号不能为空', trigger: 'blur' }],
   password: [{ required: true, message: '密码不能为空', trigger: 'blur' }]
 }
 
-// 点击登录按钮触发的事件
+// 初始化钩子：读取记住的账号
+onMounted(() => {
+  const savedUsername = localStorage.getItem('savedUsername')
+  if (savedUsername) {
+    loginForm.username = savedUsername
+    rememberMe.value = true
+  } else {
+    // 默认测试数据方便开发
+    loginForm.username = 'student01'
+    loginForm.password = '123456'
+  }
+})
+
 const handleLogin = () => {
   loginFormRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true
       try {
-        // 【核心】发起真正的后端请求！(因为配了代理，实际会请求 http://localhost:8080/auth/login)
         const res = await request.post('/auth/login', loginForm)
         
-        // 走到这里说明响应拦截器判定 code 是 200，登录成功了
         ElMessage.success('登录成功，欢迎回来：' + res.realName)
         
-        // 把后端发来的 Token 和个人信息存进本地浏览器
         localStorage.setItem('token', res.token)
         localStorage.setItem('userInfo', JSON.stringify(res))
         
-        // 跳转到系统主页
+        // 处理记住账号逻辑
+        if (rememberMe.value) {
+          localStorage.setItem('savedUsername', loginForm.username)
+        } else {
+          localStorage.removeItem('savedUsername')
+        }
+        
         router.push('/dashboard')
       } catch (error) {
-        // 如果密码错误，请求拦截器里已经弹过错了，这里抓一下异常防止控制台飙红即可
         console.log("登录失败")
       } finally {
         loading.value = false
@@ -84,31 +142,144 @@ const handleLogin = () => {
 </script>
 
 <style scoped>
-.login-container {
-  height: 100vh;
+/* 容器全屏铺满 */
+.portal-login-container {
   display: flex;
-  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #f5f7fa;
+}
+
+/* 左侧海报区 */
+.login-hero {
+  flex: 5.5;
+  position: relative;
+  background-image: url('@/assets/hero.png');
+  background-size: cover;
+  background-position: center;
+  display: flex;
   align-items: center;
-  /* 科技感深蓝色渐变背景 */
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+  justify-content: center;
 }
 
-.login-box {
-  width: 400px;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+/* 深色遮罩，保证文字可读性 */
+.hero-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(24,144,255,0.85) 0%, rgba(114,46,209,0.7) 100%);
+  z-index: 1;
 }
 
-.title {
+.hero-content {
+  position: relative;
+  z-index: 2;
+  color: white;
+  padding: 40px;
+  width: 80%;
+  max-width: 600px;
+}
+
+.logo-box {
+  display: flex;
+  align-items: center;
+  margin-bottom: 60px;
+}
+.logo-box .emoji { font-size: 42px; margin-right: 15px; }
+.logo-box .logo-text { font-size: 28px; font-weight: bold; letter-spacing: 2px;}
+
+.slogan-title {
+  font-size: 48px;
+  font-weight: 800;
+  margin: 0 0 15px 0;
+  letter-spacing: 3px;
+}
+.slogan-desc {
+  font-size: 18px;
+  opacity: 0.9;
+  margin-bottom: 40px;
+}
+.role-tags {
+  display: flex;
+  gap: 15px;
+}
+
+/* 右侧表单区 */
+.login-panel {
+  flex: 4.5;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6vh 40px;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.05);
+  position: relative;
+  z-index: 2;
+}
+
+.login-form-box {
+  width: 100%;
+  max-width: 380px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.form-header {
   text-align: center;
-  margin-bottom: 30px;
-  color: #333;
+  margin-bottom: 40px;
+}
+.form-header h2 {
+  font-size: 28px;
+  color: #303133;
+  margin: 0 0 10px 0;
+}
+.form-header p {
+  color: #909399;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 自定义输入框样式 */
+:deep(.custom-input .el-input__wrapper) {
+  border-radius: 8px;
+  padding: 4px 15px;
+  box-shadow: 0 0 0 1px #e4e7ed inset;
+}
+:deep(.custom-input .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px #409eff inset;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: -10px;
 }
 
 .login-btn {
   width: 100%;
-  font-size: 16px;
-  letter-spacing: 2px;
+  font-size: 18px;
+  letter-spacing: 4px;
+  height: 48px;
+  box-shadow: 0 8px 16px rgba(64,158,255,0.3);
+  transition: all 0.3s;
+}
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(64,158,255,0.4);
+}
+
+.form-tips {
+  text-align: center;
+  font-size: 12px;
+  color: #c0c4cc;
+  margin-top: 20px;
+}
+
+.panel-footer {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
 }
 </style>
