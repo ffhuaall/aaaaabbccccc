@@ -80,6 +80,12 @@ const router = createRouter({
 		  path: 'admin/lost-found-manage', // 访问路径为 /admin/lost-found-manage
 		  name: 'SuperLostFoundManage',
 		  component: () => import('@/views/admin/SuperLostFoundManage.vue'),
+		},
+		{
+		  path: 'admin/super-activity', // 浏览器地址栏会显示为 .../admin/super-activity
+		  name: 'SuperActivityManage',
+		  // 这里填写刚才新建的文件的精确路径
+		  component: () => import('@/views/admin/SuperActivityManage.vue'),
 		}
         // 后续的 activity, repair, course 等页面都会继续往这里面加
       ]

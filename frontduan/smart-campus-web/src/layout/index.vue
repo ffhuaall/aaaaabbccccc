@@ -75,6 +75,10 @@
 		    <el-icon><Search /></el-icon>
 		    <span>失物招领管理</span>
 		  </el-menu-item>
+		  <el-menu-item index="/admin/super-activity">
+		    <el-icon><DataAnalysis /></el-icon>
+		    <template #title>全校活动审计</template>
+		  </el-menu-item>
         </template>
       </el-menu>   
       <div class="bottom-action">

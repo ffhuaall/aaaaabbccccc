@@ -174,11 +174,21 @@ public class BizActivityController {
         if (activity != null) {
             activity.setStatus(0); // 0-已结束
             activityService.updateById(activity);
+
+            // 【闭环修复】给活动发布者发送通知
+            SysMessage msg = new SysMessage();
+            msg.setReceiverId(activity.getPublisherId());
+            msg.setTitle("活动状态变更通知");
+            msg.setContent("您好！您发布的校园活动【" + activity.getTitle() + "】已被管理员强制提前结束报名。");
+            msg.setType("ACTIVITY");
+            msg.setIsRead(0);
+            msg.setCreateTime(LocalDateTime.now());
+            messageMapper.insert(msg);
+
             return Result.success(true);
         }
         return Result.error(400, "活动不存在");
     }
-
     /**
      * 【新增】获取某个活动的报名人员列表 (带学生姓名)
      * 这里我们用一个 Map 来简单承载关联数据
@@ -238,5 +248,36 @@ public class BizActivityController {
         return Result.error(400, "记录不存在");
     }
 
+    /**
+     * 【超管专属/负责人通用】物理删除活动及其关联的报名记录
+     */
+    @DeleteMapping("/delete/{id}")
+    public Result<Boolean> deleteActivity(@PathVariable Long id) {
+        // 0. 先查出活动信息（为了拿到标题和发布者ID发通知，否则删完就查不到了）
+        BizActivity activity = activityService.getById(id);
+        if (activity == null) {
+            return Result.error(400, "操作失败：活动不存在");
+        }
+
+        // 1. 删除活动主表记录
+        activityService.removeById(id);
+        
+        // 2. 清理相关的报名记录 (级联删除，防止产生脏数据)
+        QueryWrapper<BizActivityRegistration> wrapper = new QueryWrapper<>();
+        wrapper.eq("activity_id", id);
+        registrationMapper.delete(wrapper);
+
+        // 3. 【闭环修复】给活动发布者发送违规下架/删除通知
+        SysMessage msg = new SysMessage();
+        msg.setReceiverId(activity.getPublisherId());
+        msg.setTitle("系统管理通知：活动已被强制删除");
+        msg.setContent("您好！您发布的校园活动【" + activity.getTitle() + "】由于违规或其他原因，已被超级管理员强制从系统中删除，相关报名数据已作废。");
+        msg.setType("ACTIVITY");
+        msg.setIsRead(0);
+        msg.setCreateTime(LocalDateTime.now());
+        messageMapper.insert(msg);
+        
+        return Result.success(true);
+    }
     
 }

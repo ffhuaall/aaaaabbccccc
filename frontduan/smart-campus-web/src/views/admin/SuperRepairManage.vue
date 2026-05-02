@@ -25,7 +25,7 @@
               <el-option label="已完成" :value="3" />
               <el-option label="已作废" :value="-1" />
             </el-select>
-            <el-button type="primary" plain @click="fetchAll">刷新监控</el-button>
+            <el-button type="primary" plain @click="fetchAll">刷新数据</el-button>
           </div>
         </div>
       </template>
