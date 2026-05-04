@@ -262,10 +262,10 @@ const submitPassword = () => {
         }
         
         // ⚠️ 等你后端写好 User 接口后，把下面这行注释解开
-        // await request.post('/user/update-password', submitData)
+        await request.post('/user/update-password', submitData)
         
         // 模拟请求成功
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        //await new Promise(resolve => setTimeout(resolve, 1000))
         
         ElMessage.success('安全密码修改成功，请使用新密码重新登录！')
         pwdDialogVisible.value = false
