@@ -3,16 +3,18 @@
     <div class="sidebar-capsule">
       <div class="logo">✨</div>
       <el-menu
-        default-active="/dashboard"
+        :default-active="$route.path"
         class="floating-menu"
         :router="true"
         :collapse="true"
       >
+        <!-- 全局统一的首页入口（动态渲染内容） -->
         <el-menu-item index="/dashboard">
-          <el-icon><DataLine /></el-icon>
-          <template #title>数据大屏</template>
+          <el-icon><Odometer /></el-icon>
+          <template #title>系统控制台</template>
         </el-menu-item>
         
+        <!-- 学生视图 -->
         <template v-if="!userInfo.roleId || userInfo.roleId === 1">
           <el-menu-item index="/activity">
             <el-icon><Calendar /></el-icon>
@@ -30,12 +32,13 @@
             <el-icon><Service /></el-icon>
             <template #title>宿舍报修</template>
           </el-menu-item>
-		  <el-menu-item index="/lost-found">
+          <el-menu-item index="/lost-found">
             <el-icon><Notification /></el-icon>
             <template #title>失物招领</template>
           </el-menu-item>
         </template>
 
+        <!-- 后勤管理员视图 -->
         <template v-if="userInfo.roleId === 2">
           <el-menu-item index="/admin/repair">
             <el-icon><Tools /></el-icon>
@@ -43,6 +46,7 @@
           </el-menu-item>
         </template>	
 
+        <!-- 部门活动负责人视图 -->
         <template v-if="userInfo.roleId === 3">
           <el-menu-item index="/admin/activity">
             <el-icon><Collection /></el-icon>
@@ -54,31 +58,28 @@
           </el-menu-item>
         </template>
 
+        <!-- 超级管理员视图 -->
         <template v-if="userInfo.roleId === 4">
           <el-menu-item index="/admin/user">
             <el-icon><UserFilled /></el-icon>
             <template #title>用户与权限管理</template>
           </el-menu-item>
-		  <el-menu-item index="/admin/notice">
-		    <el-icon><Notification /></el-icon>
-		    <template #title>系统公告管理</template>
-		  </el-menu-item>
-          <el-menu-item index="/dashboard">
-            <el-icon><DataLine /></el-icon>
-            <template #title>全站数据大屏</template>
+          <el-menu-item index="/admin/notice">
+            <el-icon><Notification /></el-icon>
+            <template #title>系统公告管理</template>
           </el-menu-item>
-		  <el-menu-item index="/admin/repair-all">
-		    <el-icon><Tools /></el-icon>
-		    <template #title>宿舍报修管理</template>
-		  </el-menu-item>
-		  <el-menu-item index="/admin/lost-found-manage">
-		    <el-icon><Search /></el-icon>
-		    <span>失物招领管理</span>
-		  </el-menu-item>
-		  <el-menu-item index="/admin/super-activity">
-		    <el-icon><DataAnalysis /></el-icon>
-		    <template #title>全校活动审计</template>
-		  </el-menu-item>
+          <el-menu-item index="/admin/repair-all">
+            <el-icon><Tools /></el-icon>
+            <template #title>宿舍报修管理</template>
+          </el-menu-item>
+          <el-menu-item index="/admin/lost-found-manage">
+            <el-icon><Search /></el-icon>
+            <template #title>失物招领管理</template>
+          </el-menu-item>
+          <el-menu-item index="/admin/super-activity">
+            <el-icon><DataAnalysis /></el-icon>
+            <template #title>全校活动审计</template>
+          </el-menu-item>
         </template>
       </el-menu>   
       <div class="bottom-action">
@@ -86,6 +87,7 @@
       </div>
     </div>
 
+    <!-- 中间主体区域和消息抽屉保持不变... -->
     <div class="main-container">
       <el-alert
         v-if="latestNotice"
@@ -99,12 +101,10 @@
 
       <div class="top-header">
         <h2 class="page-title">智慧校园大厅</h2>
-        
         <div class="header-right">
           <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" class="msg-badge">
             <el-icon class="bell-icon" @click="openMessageDrawer"><Bell /></el-icon>
           </el-badge>
-          
           <div class="user-info">
             <el-dropdown trigger="click">
               <div style="display: flex; align-items: center; cursor: pointer; gap: 10px;">
@@ -161,24 +161,21 @@ const router = useRouter()
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
 const userName = ref(userInfo.realName || '同学')
 
-// ======== 消息与公告状态 ========
 const unreadCount = ref(0)
 const drawerVisible = ref(false)
 const messageList = ref([])
-const latestNotice = ref(null) // 【新增】存储最新的公告内容
+const latestNotice = ref(null) 
 let timer = null 
 
-// 获取最新公告
 const fetchLatestNotice = async () => {
   try {
     const res = await request.get('/notice/latest')
-    latestNotice.value = res // 如果后端返回 null，则横幅自动消失
+    latestNotice.value = res 
   } catch (e) {
     console.error("公告获取失败")
   }
 }
 
-// 获取未读消息数
 const fetchUnreadCount = async () => {
   const currentUserId = userInfo.id || 1001
   try {
@@ -189,11 +186,10 @@ const fetchUnreadCount = async () => {
   }
 }
 
-// 轮询刷新：每 30 秒检查一次公告和未读消息
 const startPolling = () => {
   timer = setInterval(() => {
     fetchUnreadCount()
-    fetchLatestNotice() // 【同步轮询】确保公告也能实时更新
+    fetchLatestNotice() 
   }, 30000)
 }
 
@@ -228,7 +224,7 @@ const handleLogout = () => {
 
 onMounted(() => {
   fetchUnreadCount()
-  fetchLatestNotice() // 页面初始加载公告
+  fetchLatestNotice() 
   startPolling()
 })
 
@@ -238,77 +234,23 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.app-wrapper {
-  display: flex;
-  height: 100vh;
-  background: #f0f4f8;
-  padding: 20px;
-  box-sizing: border-box;
-  gap: 20px;
-}
-
-.sidebar-capsule {
-  width: 80px;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 0;
-}
-
+.app-wrapper { display: flex; height: 100vh; background: #f0f4f8; padding: 20px; box-sizing: border-box; gap: 20px; }
+.sidebar-capsule { width: 80px; background: white; border-radius: 20px; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2); display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
 .logo { font-size: 28px; margin-bottom: 30px; }
 .floating-menu { border-right: none; flex: 1; width: 100%; }
 .bottom-action { margin-top: auto; }
-
-.main-container {
-  flex: 1;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* 公告横幅样式：固定高度且视觉统一 */
-.system-notice-banner {
-  border-radius: 0;
-  border: none;
-  font-weight: bold;
-}
-
-.top-header {
-  height: 60px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 30px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
+.main-container { flex: 1; background: white; border-radius: 20px; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2); display: flex; flex-direction: column; overflow: hidden; }
+.system-notice-banner { border-radius: 0; border: none; font-weight: bold; }
+.top-header { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; border-bottom: 1px solid #f0f0f0; }
 .page-title { margin: 0; font-size: 18px; color: #333; }
 .header-right { display: flex; align-items: center; gap: 25px; }
 .user-info { display: flex; align-items: center; gap: 10px; font-weight: bold; color: #555; }
 .msg-badge { cursor: pointer; display: flex; align-items: center; }
 .bell-icon { font-size: 22px; color: #555; transition: color 0.3s; }
 .bell-icon:hover { color: #409EFF; }
-
 .content-body { flex: 1; padding: 20px; overflow-y: auto; background: #fafbfc; }
-
-.msg-item {
-  padding: 15px;
-  border-radius: 8px;
-  background: #f8f9fa;
-  margin-bottom: 15px;
-  border-left: 4px solid #dcdfe6;
-}
-.msg-item.is-unread {
-  background: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  border-left-color: #409EFF;
-}
+.msg-item { padding: 15px; border-radius: 8px; background: #f8f9fa; margin-bottom: 15px; border-left: 4px solid #dcdfe6; }
+.msg-item.is-unread { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left-color: #409EFF; }
 .msg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .msg-time { font-size: 12px; color: #999; }
 .msg-title { font-weight: bold; font-size: 15px; color: #333; margin-bottom: 5px; }
