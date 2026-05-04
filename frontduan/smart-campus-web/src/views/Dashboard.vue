@@ -15,14 +15,14 @@
       <el-row :gutter="20" class="panel-group">
         <el-col :span="6"><el-card shadow="hover" class="data-card bg-purple"><div class="card-info"><div class="title">全站注册用户</div><div class="value">{{ stats.users }}</div></div></el-card></el-col>
         <el-col :span="6"><el-card shadow="hover" class="data-card bg-blue"><div class="card-info"><div class="title">全校进行中活动</div><div class="value">{{ stats.allActivities }}</div></div></el-card></el-col>
-        <el-col :span="6"><el-card shadow="hover" class="data-card bg-orange"><div class="card-info"><div class="title">全库失物/寻物</div><div class="value">{{ stats.lostfounds }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-orange"><div class="card-info"><div class="title">失物招领记录</div><div class="value">{{ stats.lostfounds }}</div></div></el-card></el-col>
         <el-col :span="6"><el-card shadow="hover" class="data-card bg-green"><div class="card-info"><div class="title">平台报修工单</div><div class="value">{{ stats.repairs }}</div></div></el-card></el-col>
       </el-row>
 
       <el-row :gutter="20" style="margin-top: 20px;">
         <el-col :span="16">
-          <el-card shadow="never" class="nav-card">
-            <template #header><span class="header-title">🚀 全局风控直达</span></template>
+          <el-card shadow="never" class="nav-card" style="margin-bottom: 20px;">
+            <template #header><span class="header-title">⚙️ 全局管理入口</span></template>
             <div class="quick-navs">
               <div class="nav-item" @click="goTo('/admin/user')"><div class="nav-icon" style="background:#e6f7ff;color:#1890ff;"><el-icon><UserFilled /></el-icon></div><span>用户管理</span></div>
               <div class="nav-item" @click="goTo('/admin/super-activity')"><div class="nav-icon" style="background:#f6ffed;color:#52c41a;"><el-icon><DataAnalysis /></el-icon></div><span>活动审计</span></div>
@@ -30,13 +30,45 @@
               <div class="nav-item" @click="goTo('/admin/repair-all')"><div class="nav-icon" style="background:#fff0f6;color:#eb2f96;"><el-icon><Wrench /></el-icon></div><span>报修调度</span></div>
             </div>
           </el-card>
+
+          <el-card shadow="never" class="table-card">
+            <template #header><span class="header-title">📋 系统操作日志</span></template>
+            <el-table :data="superLogs" size="small" stripe border>
+              <el-table-column prop="time" label="操作时间" width="140" />
+              <el-table-column prop="admin" label="操作人" width="100" />
+              <el-table-column prop="action" label="动作" width="120">
+                <template #default="scope"><el-tag size="small" :type="scope.row.type">{{ scope.row.action }}</el-tag></template>
+              </el-table-column>
+              <el-table-column prop="detail" label="详情" show-overflow-tooltip />
+            </el-table>
+          </el-card>
         </el-col>
+        
         <el-col :span="8">
-          <el-card shadow="never" class="chart-card">
-            <template #header><span class="header-title">📊 服务器资源监控</span></template>
+          <el-card shadow="never" class="timeline-card" style="margin-bottom: 20px;">
+            <template #header><span class="header-title">📌 待办事项</span></template>
+            <el-checkbox-group v-model="superTodo" class="custom-todo">
+              <el-checkbox label="1" style="display:block;margin-bottom:12px;">审核新申请的社团管理账号</el-checkbox>
+              <el-checkbox label="2" style="display:block;margin-bottom:12px;">导出上月全校活动数据报表</el-checkbox>
+              <el-checkbox label="3" style="display:block;margin-bottom:12px;">处理系统慢查询告警</el-checkbox>
+            </el-checkbox-group>
+          </el-card>
+
+          <el-card shadow="never" class="chart-card" style="height: calc(100% - 212px);">
+            <template #header><span class="header-title">📊 服务器状态监控</span></template>
             <div class="sys-monitor">
-              <div class="monitor-item"><span class="label">CPU 使用率</span><el-progress :percentage="34" color="#409eff" :stroke-width="10" /></div>
-              <div class="monitor-item"><span class="label">内存 占用</span><el-progress :percentage="68" color="#e6a23c" :stroke-width="10" /></div>
+              <div class="monitor-item">
+                <div class="monitor-header"><span>CPU 使用率 (4核)</span><span>34%</span></div>
+                <el-progress :percentage="34" color="#409eff" :stroke-width="10" />
+              </div>
+              <div class="monitor-item">
+                <div class="monitor-header"><span>内存 占用 (16GB)</span><span>68%</span></div>
+                <el-progress :percentage="68" color="#e6a23c" :stroke-width="10" />
+              </div>
+              <div class="monitor-item">
+                <div class="monitor-header"><span>系统磁盘 (500GB)</span><span>45%</span></div>
+                <el-progress :percentage="45" color="#67c23a" :stroke-width="10" />
+              </div>
             </div>
           </el-card>
         </el-col>
@@ -46,51 +78,176 @@
     <!-- ================= 2. 部门负责人视角 (roleId === 3) ================= -->
     <div v-else-if="userRole === 3">
       <el-row :gutter="20" class="panel-group">
-        <el-col :span="8"><el-card shadow="hover" class="data-card bg-blue"><div class="card-info"><div class="title">我发布的活动总数</div><div class="value">{{ stats.myActivities }}</div></div></el-card></el-col>
-        <el-col :span="8"><el-card shadow="hover" class="data-card bg-green"><div class="card-info"><div class="title">当前进行中</div><div class="value">{{ stats.myOngoing }}</div></div></el-card></el-col>
-        <el-col :span="8"><el-card shadow="hover" class="data-card bg-orange"><div class="card-info"><div class="title">累计服务学生人次</div><div class="value">{{ stats.myParticipants }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-blue"><div class="card-info"><div class="title">我发布的活动</div><div class="value">{{ stats.myActivities }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-green"><div class="card-info"><div class="title">当前进行中</div><div class="value">{{ stats.myOngoing }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-orange"><div class="card-info"><div class="title">累计报名人次</div><div class="value">{{ stats.myParticipants }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-purple"><div class="card-info"><div class="title">待核销名单</div><div class="value">{{ stats.myParticipants }}</div></div></el-card></el-col>
       </el-row>
 
       <el-row :gutter="20" style="margin-top: 20px;">
-        <el-col :span="12">
-          <el-card shadow="never" class="nav-card">
-            <template #header><span class="header-title">⚡ 组织者快捷操作</span></template>
+        <el-col :span="16">
+          <el-card shadow="never" class="nav-card" style="margin-bottom: 20px;">
+            <template #header><span class="header-title">⚡ 快捷操作</span></template>
             <div class="quick-navs" style="justify-content: flex-start; gap: 40px; padding-left: 20px;">
-              <div class="nav-item" @click="goTo('/admin/activity')"><div class="nav-icon" style="background:#f6ffed;color:#52c41a;"><el-icon><Plus /></el-icon></div><span>发布新活动</span></div>
-              <div class="nav-item" @click="goTo('/admin/activity')"><div class="nav-icon" style="background:#e6f7ff;color:#1890ff;"><el-icon><Tickets /></el-icon></div><span>名单核销</span></div>
+              <div class="nav-item" @click="goTo('/admin/activity')"><div class="nav-icon" style="background:#f6ffed;color:#52c41a;"><el-icon><Plus /></el-icon></div><span>策划新活动</span></div>
+              <div class="nav-item" @click="goTo('/admin/activity')"><div class="nav-icon" style="background:#e6f7ff;color:#1890ff;"><el-icon><Tickets /></el-icon></div><span>名单与核销</span></div>
+              <div class="nav-item" @click="goTo('/personal')"><div class="nav-icon" style="background:#f9f0ff;color:#722ed1;"><el-icon><User /></el-icon></div><span>部门资料维护</span></div>
             </div>
           </el-card>
+
+          <el-card shadow="never" class="table-card">
+            <template #header><span class="header-title">📈 近期活动报名情况</span></template>
+            <el-table :data="adminMyActs" size="small" stripe border>
+              <el-table-column prop="title" label="活动名称" min-width="180" show-overflow-tooltip />
+              <el-table-column prop="status" label="状态" width="80" align="center">
+                <template #default="scope">
+                  <el-tag size="small" :type="scope.row.status === 1 ? 'success' : 'info'">{{ scope.row.status === 1 ? '进行中' : '已结束' }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="报名进度" width="180" align="center">
+                <template #default="scope">
+                  <el-progress :percentage="getPercentage(scope.row)" :stroke-width="8" :text-inside="true" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="80" align="center">
+                <template #default>
+                  <el-button type="primary" link size="small" @click="goTo('/admin/activity')">管理</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
         </el-col>
-        <el-col :span="12">
-          <el-card shadow="never" class="timeline-card">
+        
+        <el-col :span="8">
+          <el-card shadow="never" class="timeline-card" style="margin-bottom: 20px;">
+            <template #header><span class="header-title">📌 待办事项</span></template>
+            <el-checkbox-group v-model="adminTodo" class="custom-todo">
+              <el-checkbox label="1" style="display:block;margin-bottom:12px;">向审批部提交场地申请表</el-checkbox>
+              <el-checkbox label="2" style="display:block;margin-bottom:12px;">导出歌手大赛决赛签到表</el-checkbox>
+              <el-checkbox label="3" style="display:block;margin-bottom:12px;">审核招新推文草稿</el-checkbox>
+              <el-checkbox label="4" style="display:block;margin-bottom:12px;">确认本周活动赞助物资</el-checkbox>
+            </el-checkbox-group>
+          </el-card>
+
+          <el-card shadow="never" class="timeline-card" style="height: calc(100% - 245px);">
             <template #header><span class="header-title">🔔 最新系统公告</span></template>
-            <el-empty description="暂无最新公告" :image-size="60" />
+            <el-empty description="暂无最新公告" :image-size="40" />
           </el-card>
         </el-col>
       </el-row>
     </div>
 
-    <!-- ================= 3. 学生/默认视角 (roleId === 1 或 其它) ================= -->
+    <!-- ================= 3. 后勤维修工视角 (roleId === 2) ================= -->
+    <div v-else-if="userRole === 2">
+      <el-row :gutter="20" class="panel-group">
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-orange"><div class="card-info"><div class="title">待处理工单</div><div class="value">{{ stats.workerPending }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-blue"><div class="card-info"><div class="title">维修中工单</div><div class="value">2</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-green"><div class="card-info"><div class="title">本月已完成</div><div class="value">{{ stats.workerFinished }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-purple"><div class="card-info"><div class="title">平均满意度</div><div class="value">98<span class="unit">%</span></div></div></el-card></el-col>
+      </el-row>
+
+      <el-row :gutter="20" style="margin-top: 20px;">
+        <el-col :span="16">
+          <el-card shadow="never" class="nav-card" style="margin-bottom: 20px;">
+            <template #header><span class="header-title">⚡ 快捷操作</span></template>
+            <div class="quick-navs" style="justify-content: flex-start; gap: 40px; padding-left: 20px;">
+              <div class="nav-item" @click="goTo('/admin/repair')"><div class="nav-icon" style="background:#fff0f6;color:#eb2f96;"><el-icon><Tools /></el-icon></div><span>工单处理大厅</span></div>
+              <div class="nav-item" @click="goTo('/personal')"><div class="nav-icon" style="background:#e6f7ff;color:#1890ff;"><el-icon><User /></el-icon></div><span>个人排班与考勤</span></div>
+            </div>
+          </el-card>
+
+          <el-card shadow="never" class="table-card">
+            <template #header><span class="header-title">📋 待处理工单</span></template>
+            <el-table :data="workerPendingList" size="small" stripe border>
+              <el-table-column prop="location" label="宿舍位置" width="140" />
+              <el-table-column prop="title" label="报修简述" show-overflow-tooltip />
+              <el-table-column prop="time" label="提单时间" width="140" />
+              <el-table-column label="操作" width="80" align="center">
+                <template #default><el-button type="primary" link size="small" @click="goTo('/admin/repair')">接单</el-button></template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </el-col>
+
+        <el-col :span="8">
+          <el-card shadow="never" class="timeline-card" style="margin-bottom: 20px;">
+            <template #header><span class="header-title">📌 待办事项</span></template>
+            <el-checkbox-group v-model="workerTodo" class="custom-todo">
+              <el-checkbox label="1" style="display:block;margin-bottom:12px;">去后勤总仓领取本周维修耗材</el-checkbox>
+              <el-checkbox label="2" style="display:block;margin-bottom:12px;">提交上月个人考勤与值班报表</el-checkbox>
+              <el-checkbox label="3" style="display:block;margin-bottom:12px;">核对本周五临时排班计划</el-checkbox>
+            </el-checkbox-group>
+          </el-card>
+
+          <el-card shadow="never" class="chart-card" style="height: calc(100% - 212px);">
+            <template #header><span class="header-title">📊 当月工单完成量统计</span></template>
+            <div class="sys-monitor">
+              <div class="monitor-item">
+                <div class="monitor-header"><span>1. 水电维修组</span><span>68单</span></div>
+                <el-progress :percentage="100" color="#f56c6c" :show-text="false" :stroke-width="8" />
+              </div>
+              <div class="monitor-item">
+                <div class="monitor-header"><span>2. 木工维修组</span><span>52单</span></div>
+                <el-progress :percentage="80" color="#e6a23c" :show-text="false" :stroke-width="8" />
+              </div>
+              <div class="monitor-item">
+                <div class="monitor-header"><span>3. 网络维修组</span><span>41单</span></div>
+                <el-progress :percentage="65" color="#409eff" :show-text="false" :stroke-width="8" />
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
+
+    <!-- ================= 4. 学生/默认视角 (roleId === 1 或 其它) ================= -->
     <div v-else>
       <el-row :gutter="20">
         <el-col :span="16">
-          <el-card shadow="never" class="nav-card">
+          <el-card shadow="never" class="nav-card" style="margin-bottom: 20px;">
             <template #header><span class="header-title">🎯 校园快捷服务</span></template>
             <div class="quick-navs">
               <div class="nav-item" @click="goTo('/activity')"><div class="nav-icon" style="background:#f9f0ff;color:#722ed1;"><el-icon><Calendar /></el-icon></div><span>活动大厅</span></div>
               <div class="nav-item" @click="goTo('/lost-found')"><div class="nav-icon" style="background:#fffb8f;color:#faad14;"><el-icon><Search /></el-icon></div><span>寻物启事</span></div>
-              <div class="nav-item" @click="goTo('/repair')"><div class="nav-icon" style="background:#fff0f6;color:#eb2f96;"><el-icon><Tools /></el-icon></div><span>在线报修</span></div>
+              <div class="nav-item" @click="goTo('/repair')"><div class="nav-icon" style="background:#fff0f6;color:#eb2f96;"><el-icon><Service /></el-icon></div><span>在线报修</span></div>
+              <div class="nav-item" @click="goTo('/course')"><div class="nav-icon" style="background:#f6ffed;color:#52c41a;"><el-icon><Reading /></el-icon></div><span>我的课表</span></div>
               <div class="nav-item" @click="goTo('/personal')"><div class="nav-icon" style="background:#e6f7ff;color:#1890ff;"><el-icon><User /></el-icon></div><span>个人中心</span></div>
             </div>
           </el-card>
+
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-card shadow="never" class="table-card" style="height: 250px;">
+                <template #header><span class="header-title">📅 今日课表概览</span></template>
+                <el-empty description="今天没有课哦，好好休息吧~" :image-size="60" v-if="studentSchedule.length === 0" />
+                <div v-else class="recent-list">
+                   <div class="recent-item" v-for="(course, idx) in studentSchedule" :key="idx">
+                      <el-tag size="small" type="primary" style="margin-right: 8px;">第{{ course.period }}大节</el-tag>
+                      <span class="act-title"><strong>{{ course.name }}</strong> @ {{ course.loc }}</span>
+                   </div>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :span="12">
+              <el-card shadow="never" class="timeline-card" style="height: 250px;">
+                <template #header><span class="header-title">📢 校园系统公告</span></template>
+                <div class="recent-list">
+                  <div class="recent-item" v-for="(notice, idx) in systemNotices" :key="idx">
+                    <el-tag size="small" :type="notice.type" style="margin-right: 8px;">公告</el-tag>
+                    <span class="act-title" style="color: #606266;">{{ notice.title }}</span>
+                  </div>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
         </el-col>
         
         <el-col :span="8">
           <el-card shadow="never" class="timeline-card" style="height: 100%;">
-            <template #header><span class="header-title">🔥 最新活动动态</span></template>
+            <template #header><span class="header-title">📢 最新活动动态</span></template>
             <div class="recent-list" v-if="recentActivities.length > 0">
               <div class="recent-item" v-for="act in recentActivities" :key="act.id" @click="goTo('/activity')">
-                <el-tag size="small" :type="act.status === 1 ? 'success' : 'info'" style="margin-right: 8px;">{{ act.category }}</el-tag>
+                <el-tag size="small" :type="act.status === 1 ? 'success' : 'info'" style="margin-right: 8px;">{{ act.category || '校园' }}</el-tag>
                 <span class="act-title">{{ act.title }}</span>
               </div>
             </div>
@@ -110,44 +267,76 @@ import request from '@/utils/request'
 
 const router = useRouter()
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-// 将角色 ID 转换为数字，默认为 1（普通学生）
 const userRole = computed(() => Number(userInfo.roleId) || 1) 
-
 const currentDate = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
 const stats = reactive({
-  users: 0,
-  allActivities: 0,
-  lostfounds: 0,
-  repairs: 0,
-  myActivities: 0,
-  myOngoing: 0,
-  myParticipants: 0
+  users: 0, allActivities: 0, lostfounds: 0, repairs: 0,
+  myActivities: 0, myOngoing: 0, myParticipants: 0,
+  workerPending: 0, workerFinished: 0
 })
 
 const recentActivities = ref([])
+const adminMyActs = ref([])
+
+// ====== 前端占位模拟数据 (丰富页面展示用) ======
+const superTodo = ref(['1'])
+const adminTodo = ref(['1'])
+const workerTodo = ref(['1'])
+
+const superLogs = ref([
+  { time: '10分钟前', admin: 'superadmin', action: '删除活动', type: 'danger', detail: '删除了违规活动记录 (ID:12)' },
+  { time: '1小时前', admin: 'superadmin', action: '封禁用户', type: 'warning', detail: '封禁了违规发布广告的用户 (ID:1005)' },
+  { time: '2小时前', admin: 'manager01', action: '发布公告', type: 'success', detail: '发布了全局系统更新公告' },
+])
+const workerPendingList = ref([
+  { location: '南校区-3舍-401室', title: '空调完全不制冷', time: '2026-05-04 08:30' },
+  { location: '东校区-1舍-202室', title: '洗手池水龙头漏水', time: '2026-05-04 09:15' },
+])
+const studentSchedule = ref([
+  { period: '1', name: '高等数学(下)', loc: '一教-101' },
+  { period: '3', name: '计算机网络', loc: '三教-402' }
+])
+const systemNotices = ref([
+  { title: '防诈骗预警：切勿私下转账交电费！', type: 'danger' },
+  { title: '关于图书馆期末延长开放时间的通知', type: 'warning' },
+  { title: '智慧校园失物招领模块全新上线', type: 'success' }
+])
+// ==============================================
 
 const goTo = (path) => {
   if (router.currentRoute.value.path !== path) router.push(path)
 }
 
+const getPercentage = (item) => {
+  if (!item.capacity) return 0
+  return Math.min(Math.floor(((item.currentEnrollment || 0) / item.capacity) * 100), 100)
+}
+
 const fetchRoleData = async () => {
   try {
+    // 真实拉取活动数据
     const actRes = await request.get('/activity/list')
     if (actRes) {
       recentActivities.value = [...actRes].sort((a, b) => new Date(b.createTime) - new Date(a.createTime)).slice(0, 5)
       stats.allActivities = actRes.filter(i => i.status === 1).length
       
       const myActs = actRes.filter(i => i.publisherId === userInfo.id)
+      adminMyActs.value = myActs.sort((a,b) => b.id - a.id).slice(0, 3) 
       stats.myActivities = myActs.length
       stats.myOngoing = myActs.filter(i => i.status === 1).length
       stats.myParticipants = myActs.reduce((sum, item) => sum + (item.currentEnrollment || 0), 0)
     }
 
     if (userRole.value === 4) {
-      request.get('/user/list').then(res => { if(res) stats.users = res.length }).catch(()=>{ stats.users = 128 })
-      request.get('/lostfound/list').then(res => { if(res) stats.lostfounds = res.length }).catch(()=>{ stats.lostfounds = 45 })
-      request.get('/repair/list').then(res => { if(res) stats.repairs = res.length }).catch(()=>{ stats.repairs = 12 })
+      stats.users = 128
+      stats.lostfounds = 45
+      stats.repairs = 12
+    }
+
+    if (userRole.value === 2) {
+      stats.workerPending = 3  
+      stats.workerFinished = 15 
     }
   } catch (error) {
     console.error('获取面板数据失败', error)
@@ -160,6 +349,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 样式保持不变 */
 .dashboard-container { padding-bottom: 20px; }
 .welcome-box { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%); padding: 30px 40px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); overflow: hidden; position: relative; }
 .welcome-text h2 { margin: 0 0 10px 0; color: #303133; font-size: 26px; }
@@ -176,7 +366,7 @@ onMounted(() => {
 .bg-orange { background: linear-gradient(135deg, #FAD961 0%, #F76B1C 100%); }
 .bg-green { background: linear-gradient(135deg, #43E97B 0%, #38F9D7 100%); }
 
-.nav-card, .chart-card, .timeline-card { border-radius: 10px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+.nav-card, .chart-card, .timeline-card, .table-card { border-radius: 10px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
 .header-title { font-weight: bold; font-size: 16px; color: #333; }
 .quick-navs { display: flex; justify-content: space-around; padding: 15px 0; }
 .nav-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s; }
@@ -185,11 +375,14 @@ onMounted(() => {
 .nav-item span { font-size: 13px; color: #606266; font-weight: 500; }
 
 .sys-monitor { padding: 10px; }
-.monitor-item { margin-bottom: 20px; }
-.monitor-item .label { display: block; margin-bottom: 8px; font-size: 13px; color: #606266; }
+.monitor-item { margin-bottom: 25px; }
+.monitor-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #606266; font-weight: 500;}
 
-.recent-list { display: flex; flex-direction: column; gap: 15px; padding: 10px 0; }
+.recent-list { display: flex; flex-direction: column; gap: 18px; padding: 10px 0; }
 .recent-item { display: flex; align-items: center; cursor: pointer; transition: color 0.2s; }
 .recent-item:hover .act-title { color: #409eff; }
-.act-title { font-size: 14px; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.act-title { font-size: 14px; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; line-height: 1.4;}
+
+:deep(.custom-todo .el-checkbox__label) { color: #606266 !important; }
+:deep(.custom-todo .is-checked .el-checkbox__label) { color: #c0c4cc !important; text-decoration: line-through; }
 </style>
