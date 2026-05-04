@@ -284,11 +284,6 @@ const superTodo = ref(['1'])
 const adminTodo = ref(['1'])
 const workerTodo = ref(['1'])
 
-const superLogs = ref([
-  { time: '10分钟前', admin: 'superadmin', action: '删除活动', type: 'danger', detail: '删除了违规活动记录 (ID:12)' },
-  { time: '1小时前', admin: 'superadmin', action: '封禁用户', type: 'warning', detail: '封禁了违规发布广告的用户 (ID:1005)' },
-  { time: '2小时前', admin: 'manager01', action: '发布公告', type: 'success', detail: '发布了全局系统更新公告' },
-])
 const workerPendingList = ref([
   { location: '南校区-3舍-401室', title: '空调完全不制冷', time: '2026-05-04 08:30' },
   { location: '东校区-1舍-202室', title: '洗手池水龙头漏水', time: '2026-05-04 09:15' },
@@ -303,6 +298,8 @@ const systemNotices = ref([
   { title: '智慧校园失物招领模块全新上线', type: 'success' }
 ])
 // ==============================================
+
+const superLogs = ref([])
 
 const goTo = (path) => {
   if (router.currentRoute.value.path !== path) router.push(path)
@@ -328,16 +325,33 @@ const fetchRoleData = async () => {
       stats.myParticipants = myActs.reduce((sum, item) => sum + (item.currentEnrollment || 0), 0)
     }
 
+    // ================= 超管专属逻辑 =================
     if (userRole.value === 4) {
+      // 1. 拉取真实的系统风控日志
+      request.get('/log/recent').then(res => {
+        if (res && res.length > 0) {
+          superLogs.value = res.map(item => ({
+            time: item.createTime ? item.createTime.substring(5, 16).replace('T', ' ') : '',
+            admin: item.username,
+            action: item.action,
+            type: item.type,
+            detail: item.detail
+          }))
+        }
+      }).catch(()=>{})
+
+      // 2. 模拟拉取全站其他统计数据(防报错兜底)
       stats.users = 128
       stats.lostfounds = 45
       stats.repairs = 12
     }
 
+    // ================= 维修工专属逻辑 =================
     if (userRole.value === 2) {
       stats.workerPending = 3  
       stats.workerFinished = 15 
     }
+
   } catch (error) {
     console.error('获取面板数据失败', error)
   }

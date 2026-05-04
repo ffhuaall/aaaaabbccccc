@@ -143,6 +143,22 @@ CREATE TABLE `sys_notice` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统公告表';
 
+DROP TABLE IF EXISTS `sys_log`;
+CREATE TABLE `sys_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL COMMENT '操作人账号/姓名',
+  `module` varchar(50) NOT NULL COMMENT '操作模块',
+  `action` varchar(50) NOT NULL COMMENT '动作简述',
+  `type` varchar(20) DEFAULT 'info' COMMENT '标签类型(success/warning/danger/info)',
+  `detail` varchar(255) COMMENT '详细描述',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统风控操作日志表';
+
+INSERT INTO `sys_log` (`username`, `module`, `action`, `type`, `detail`) VALUES 
+('superadmin', '活动管理', '强制删除', 'danger', '物理删除了涉嫌违规的活动记录 (ID: 6)'),
+('manager01', '系统公告', '发布公告', 'success', '发布了全新的失物招领上线通知');
+
 -- 为学号 1001 (张三) 插入几条极具代表性的测试数据
 -- 1. 高等数学：周一第1大节，1-16周，每周都上
 INSERT INTO `biz_course_schedule` VALUES (1, 1001, '高等数学(上)', '李老师', '教1-101', 1, 1, 1, 16, 0);

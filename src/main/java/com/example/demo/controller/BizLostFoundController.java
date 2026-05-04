@@ -5,7 +5,9 @@ import com.example.demo.common.Result;
 import com.example.demo.document.EsLostFound;
 import com.example.demo.entity.BizLostFound;
 import com.example.demo.entity.BizLostFoundComment;
+import com.example.demo.entity.SysLog;
 import com.example.demo.entity.SysMessage;
+import com.example.demo.mapper.SysLogMapper;
 import com.example.demo.mapper.SysMessageMapper;
 import com.example.demo.service.BizLostFoundCommentService;
 import com.example.demo.service.BizLostFoundService;
@@ -26,6 +28,11 @@ public class BizLostFoundController {
 
     @Autowired
     private BizLostFoundCommentService commentService;
+
+    // 【新增】注入日志 Mapper
+    @Autowired
+    private SysLogMapper logMapper;
+
     /**
      * 获取失物招领列表大厅 (前端 fetchList 调用的就是这里)
      */
@@ -42,8 +49,6 @@ public class BizLostFoundController {
      */
     @PostMapping("/publish")
     public Result<Boolean> publish(@RequestBody BizLostFound lostFound) {
-        // [填坑] 实际开发中，publisherId 应该从 JWT Token 中解析出来。
-        // 这里为了让前端能顺利跑通测试，如果前端没传，默认给它分配测试 ID = 1001 (张三的ID)
         if (lostFound.getPublisherId() == null) {
             lostFound.setPublisherId(1001L);
         }
@@ -79,33 +84,41 @@ public class BizLostFoundController {
      */
     @PostMapping("/delete/{id}")
     public Result<Boolean> deleteItem(@PathVariable Long id) {
+        BizLostFound item = lostFoundService.getById(id);
         boolean success = lostFoundService.removeById(id);
+
+        if (success && item != null) {
+            // 🌟 【风控埋点】记录删除操作
+            SysLog log = new SysLog();
+            log.setUsername("superadmin"); // 实际可从Token提取
+            log.setModule("失物招领");
+            log.setAction("物理删除");
+            log.setType("danger");
+            log.setDetail("删除了失物招领记录：【" + item.getItemName() + "】");
+            logMapper.insert(log);
+        }
+        
         return Result.success(success);
     }
 
     /**
      * 1. 认领/找回物品 (点击确认认领时调用)
-     * @param id 物品ID
-     * @param claimerId 认领人ID
      */
     @PostMapping("/claim/{id}")
     public Result<Boolean> claimItem(@PathVariable Long id, @RequestParam Long claimerId) {
         BizLostFound item = lostFoundService.getById(id);
         if (item != null && item.getStatus() == 0) {
-            // 更新物品状态为已解决 (1)
             item.setStatus(1);
             lostFoundService.updateById(item);
 
-            // 【核心】给发布者发送系统通知
             SysMessage msg = new SysMessage();
-            msg.setReceiverId(item.getPublisherId()); // 接收者是发布人
+            msg.setReceiverId(item.getPublisherId());
             String typeText = item.getType() == 0 ? "寻物" : "招领";
             msg.setTitle("失物招领模块提醒");
             msg.setContent("同学你好！你发布的" + typeText + "信息【" + item.getItemName() + "】已被其他同学点击认领/确认。请及时进入模块查看并联系！");
-            msg.setType("LOST_FOUND"); // 消息类型
+            msg.setType("LOST_FOUND");
             msg.setIsRead(0);
             msg.setCreateTime(java.time.LocalDateTime.now());
-            // 假设你有一个 messageMapper 或者直接用 messageService
             messageMapper.insert(msg); 
 
             return Result.success(true);
@@ -114,16 +127,15 @@ public class BizLostFoundController {
     }
 
     /**
-     * 2. [新增] 留言功能：为物品添加评论/留言
+     * 2. 留言功能：为物品添加评论/留言
      */
     @PostMapping("/comment/add")
     public Result<Boolean> addComment(@RequestBody BizLostFoundComment comment) {
-        // 需新建对应的实体类和数据库表，此处省略具体 Service 实现，逻辑为 insert
         return Result.success(commentService.save(comment));
     }
 
     /**
-     * 3. [新增] 获取某件物品的所有留言
+     * 3. 获取某件物品的所有留言
      */
     @GetMapping("/comments/{itemId}")
     public Result<List<BizLostFoundComment>> getComments(@PathVariable Long itemId) {
@@ -132,17 +144,15 @@ public class BizLostFoundController {
 
     /**
      * 【超管特权】强制下架/作废失物招领信息
-     * @param id 物品ID
      */
     @PostMapping("/cancel/{id}")
     public Result<Boolean> cancelItem(@PathVariable Long id) {
         BizLostFound item = lostFoundService.getById(id);
         if (item != null) {
-            // 1. 将状态设置为 -1 (已作废)
             item.setStatus(-1); 
             lostFoundService.updateById(item);
 
-            // 2. 【核心改进】给发布这个帖子的学生发送违规/下架通知
+            // 给发布者发送通知
             SysMessage msg = new SysMessage();
             msg.setReceiverId(item.getPublisherId()); 
             msg.setTitle("系统管理通知");
@@ -151,6 +161,15 @@ public class BizLostFoundController {
             msg.setIsRead(0);
             msg.setCreateTime(java.time.LocalDateTime.now());
             messageMapper.insert(msg);
+
+            // 🌟 【风控埋点】记录超管下架操作
+            SysLog log = new SysLog();
+            log.setUsername("superadmin");
+            log.setModule("失物招领");
+            log.setAction("强制下架");
+            log.setType("warning");
+            log.setDetail("判定违规，强制下架了帖子：【" + item.getItemName() + "】");
+            logMapper.insert(log);
 
             return Result.success(true);
         }

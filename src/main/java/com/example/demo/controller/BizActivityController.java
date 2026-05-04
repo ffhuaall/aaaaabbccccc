@@ -5,6 +5,7 @@ import com.example.demo.entity.BizActivity;
 import com.example.demo.service.BizActivityService;
 import com.example.demo.service.SysUserService;
 import com.example.demo.entity.BizActivityRegistration;
+import com.example.demo.entity.SysLog;
 import com.example.demo.entity.SysMessage;
 import com.example.demo.entity.SysUser;
 
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.entity.BizActivityRegistration;
 import com.example.demo.mapper.BizActivityRegistrationMapper;
+import com.example.demo.mapper.SysLogMapper;
 import com.example.demo.mapper.SysMessageMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,8 @@ public class BizActivityController {
     private SysUserService userService;
     @Autowired
     private SysMessageMapper messageMapper;
+    @Autowired
+    private SysLogMapper logMapper;
     /**
      * 查询所有活动列表
      */
@@ -175,7 +179,6 @@ public class BizActivityController {
             activity.setStatus(0); // 0-已结束
             activityService.updateById(activity);
 
-            // 【闭环修复】给活动发布者发送通知
             SysMessage msg = new SysMessage();
             msg.setReceiverId(activity.getPublisherId());
             msg.setTitle("活动状态变更通知");
@@ -185,10 +188,22 @@ public class BizActivityController {
             msg.setCreateTime(LocalDateTime.now());
             messageMapper.insert(msg);
 
+            // 🌟 【风控埋点】记录超管强制切断活动
+            SysLog log = new SysLog();
+            log.setUsername("superadmin");
+            log.setModule("活动审计");
+            log.setAction("强制停止");
+            log.setType("warning"); // 警告色
+            log.setDetail("发现违规或异常，强制提前结束了活动【" + activity.getTitle() + "】");
+            logMapper.insert(log);
+
             return Result.success(true);
         }
         return Result.error(400, "活动不存在");
     }
+
+
+
     /**
      * 【新增】获取某个活动的报名人员列表 (带学生姓名)
      * 这里我们用一个 Map 来简单承载关联数据

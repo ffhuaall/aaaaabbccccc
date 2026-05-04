@@ -2,8 +2,10 @@ package com.example.demo.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.common.Result;
-import com.example.demo.entity.SysNotice; // 需自行创建 Entity
-import com.example.demo.mapper.SysNoticeMapper; // 需自行创建 Mapper
+import com.example.demo.entity.SysLog;
+import com.example.demo.entity.SysNotice;
+import com.example.demo.mapper.SysLogMapper;
+import com.example.demo.mapper.SysNoticeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,21 +18,38 @@ public class SysNoticeController {
     @Autowired
     private SysNoticeMapper noticeMapper;
 
+    // 【新增】注入日志 Mapper
+    @Autowired
+    private SysLogMapper logMapper;
+
     // 超管：发布/修改公告
     @PostMapping("/save")
     public Result<Boolean> save(@RequestBody SysNotice notice) {
-        if (notice.getId() == null) {
+        boolean isNew = (notice.getId() == null);
+
+        if (isNew) {
             notice.setCreateTime(java.time.LocalDateTime.now());
         }
-        if (notice.getIsActive() == 1) {
-            // 确保全站同时只有一个激活的强提醒公告（可选逻辑）
+        if (notice.getIsActive() != null && notice.getIsActive() == 1) {
             SysNotice update = new SysNotice();
             update.setIsActive(0);
             noticeMapper.update(update, new QueryWrapper<SysNotice>().eq("is_active", 1));
         }
-        // 这里为了简单，支持多条发布。如果用 saveOrUpdate 需配置 Service
-        if (notice.getId() == null) noticeMapper.insert(notice);
-        else noticeMapper.updateById(notice);
+
+        if (isNew) {
+            noticeMapper.insert(notice);
+            // 🌟 【风控埋点】记录发布公告操作
+            SysLog log = new SysLog();
+            log.setUsername("superadmin"); // 实际可从Token提取
+            log.setModule("系统公告");
+            log.setAction("发布公告");
+            log.setType("info");
+            log.setDetail("发布了新的系统公告：【" + notice.getTitle() + "】");
+            logMapper.insert(log);
+        } else {
+            noticeMapper.updateById(notice);
+        }
+
         return Result.success(true);
     }
 

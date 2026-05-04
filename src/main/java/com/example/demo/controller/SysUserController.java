@@ -2,7 +2,9 @@ package com.example.demo.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.common.Result;
+import com.example.demo.entity.SysLog;
 import com.example.demo.entity.SysUser;
+import com.example.demo.mapper.SysLogMapper;
 import com.example.demo.service.SysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +24,9 @@ public class SysUserController {
     // 【新增】直接注入 SecurityConfig 中配置好的密码加密器
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private SysLogMapper logMapper;
 
     /**
      * 1. 获取全校用户列表 (支持根据学号/姓名模糊搜索)
@@ -73,10 +78,20 @@ public class SysUserController {
     @PostMapping("/status")
     public Result<Boolean> updateStatus(@RequestParam Long id, @RequestParam Integer status) {
         SysUser user = new SysUser();
-        user.getId(); // 【修正】这里原代码写法有误，应该是 setId
         user.setId(id);
         user.setStatus(status);
-        return Result.success(userService.updateById(user));
+        boolean res = userService.updateById(user);
+
+        // 🌟 【风控埋点】记录账号的封禁与解封
+        SysLog log = new SysLog();
+        log.setUsername("superadmin"); // 实际可从Token/Session中获取当前登录者
+        log.setModule("用户管理");
+        log.setAction(status == 1 ? "解封账号" : "封禁账号");
+        log.setType(status == 1 ? "success" : "danger"); // 封禁显示红色，解封显示绿色
+        log.setDetail("将用户 ID: " + id + " 的状态修改为: " + (status == 1 ? "正常" : "禁用"));
+        logMapper.insert(log);
+
+        return Result.success(res);
     }
 
     /**
@@ -89,6 +104,7 @@ public class SysUserController {
         // 【修改】调用 encoder 动态生成哈希，不再硬编码
         user.setPassword(passwordEncoder.encode("123456"));
         return Result.success(userService.updateById(user));
+        
     }
 
     /**
@@ -130,4 +146,5 @@ public class SysUserController {
 
         return Result.success(true);
     }
+
 }
