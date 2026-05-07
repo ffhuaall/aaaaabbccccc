@@ -14,13 +14,14 @@ import java.util.stream.Collectors;
 public class BizCourseScheduleServiceImpl extends ServiceImpl<BizCourseScheduleMapper, BizCourseSchedule> implements BizCourseScheduleService {
 
     @Override
-    public List<BizCourseSchedule> getWeeklySchedule(Long studentId, Integer targetWeek) {
-        // 1. 查询该学生名下的所有课程排期
+    public List<BizCourseSchedule> getWeeklyScheduleByClass(Long classId, Integer targetWeek) {
+        // 1. 查询该【班级】名下的所有课程排期
         QueryWrapper<BizCourseSchedule> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_id", studentId);
+        // 🌟 【修改点】：把原本的 student_id 替换为了 class_id
+        queryWrapper.eq("class_id", classId);
         List<BizCourseSchedule> allCourses = this.list(queryWrapper);
 
-        // 2. 使用 Java 8 Stream 流进行强大的单双周与周区间过滤
+        // 2. 完美保留你原有的强大过滤逻辑！
         return allCourses.stream().filter(course -> {
             // 规则 A：查询的周次必须在课程的起始周和结束周之间
             if (targetWeek < course.getStartWeek() || targetWeek > course.getEndWeek()) {

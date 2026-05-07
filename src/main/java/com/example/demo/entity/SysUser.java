@@ -15,6 +15,7 @@ public class SysUser {
     private String password;
     private String realName;
     private Integer roleId;
+    private Long classId;
     private String avatar;
     private String phone;
     private Integer status;

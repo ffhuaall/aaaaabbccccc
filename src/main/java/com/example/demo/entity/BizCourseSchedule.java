@@ -10,7 +10,7 @@ import lombok.Data;
 public class BizCourseSchedule {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Long studentId;
+    private Long classId;
     private String courseName;
     private String teacherName;
     private String location;
