@@ -1,7 +1,6 @@
 <template>
   <div class="dashboard-container">
     
-    <!-- ================= 通用欢迎头部 ================= -->
     <div class="welcome-box">
       <div class="welcome-text">
         <h2>早安，{{ userInfo.realName || userInfo.username || '同学' }}！</h2>
@@ -10,7 +9,6 @@
       <img src="@/assets/hero.png" class="welcome-img" alt="welcome" />
     </div>
 
-    <!-- ================= 1. 超级管理员视角 (roleId === 4) ================= -->
     <div v-if="userRole === 4">
       <el-row :gutter="20" class="panel-group">
         <el-col :span="6"><el-card shadow="hover" class="data-card bg-purple"><div class="card-info"><div class="title">全站注册用户</div><div class="value">{{ stats.users }}</div></div></el-card></el-col>
@@ -46,7 +44,7 @@
         
         <el-col :span="8">
           <el-card shadow="never" class="timeline-card" style="margin-bottom: 20px;">
-            <template #header><span class="header-title">📌 待办事项</span></template>
+            <template #header><span class="header-title">📌 待办事项 (本地备忘录)</span></template>
             <el-checkbox-group v-model="superTodo" class="custom-todo">
               <el-checkbox label="1" style="display:block;margin-bottom:12px;">审核新申请的社团管理账号</el-checkbox>
               <el-checkbox label="2" style="display:block;margin-bottom:12px;">导出上月全校活动数据报表</el-checkbox>
@@ -75,7 +73,6 @@
       </el-row>
     </div>
 
-    <!-- ================= 2. 部门负责人视角 (roleId === 3) ================= -->
     <div v-else-if="userRole === 3">
       <el-row :gutter="20" class="panel-group">
         <el-col :span="6"><el-card shadow="hover" class="data-card bg-blue"><div class="card-info"><div class="title">我发布的活动</div><div class="value">{{ stats.myActivities }}</div></div></el-card></el-col>
@@ -120,7 +117,7 @@
         
         <el-col :span="8">
           <el-card shadow="never" class="timeline-card" style="margin-bottom: 20px;">
-            <template #header><span class="header-title">📌 待办事项</span></template>
+            <template #header><span class="header-title">📌 待办事项 (本地备忘录)</span></template>
             <el-checkbox-group v-model="adminTodo" class="custom-todo">
               <el-checkbox label="1" style="display:block;margin-bottom:12px;">向审批部提交场地申请表</el-checkbox>
               <el-checkbox label="2" style="display:block;margin-bottom:12px;">导出歌手大赛决赛签到表</el-checkbox>
@@ -131,18 +128,23 @@
 
           <el-card shadow="never" class="timeline-card" style="height: calc(100% - 245px);">
             <template #header><span class="header-title">🔔 最新系统公告</span></template>
-            <el-empty description="暂无最新公告" :image-size="40" />
+            <div class="recent-list" v-if="systemNotices.length > 0">
+              <div class="recent-item" v-for="(notice, idx) in systemNotices" :key="idx">
+                <el-tag size="small" :type="notice.type" style="margin-right: 8px;">公告</el-tag>
+                <span class="act-title" style="color: #606266;">{{ notice.title }}</span>
+              </div>
+            </div>
+            <el-empty v-else description="暂无最新公告" :image-size="40" />
           </el-card>
         </el-col>
       </el-row>
     </div>
 
-    <!-- ================= 3. 后勤维修工视角 (roleId === 2) ================= -->
     <div v-else-if="userRole === 2">
       <el-row :gutter="20" class="panel-group">
         <el-col :span="6"><el-card shadow="hover" class="data-card bg-orange"><div class="card-info"><div class="title">待处理工单</div><div class="value">{{ stats.workerPending }}</div></div></el-card></el-col>
-        <el-col :span="6"><el-card shadow="hover" class="data-card bg-blue"><div class="card-info"><div class="title">维修中工单</div><div class="value">2</div></div></el-card></el-col>
-        <el-col :span="6"><el-card shadow="hover" class="data-card bg-green"><div class="card-info"><div class="title">本月已完成</div><div class="value">{{ stats.workerFinished }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-blue"><div class="card-info"><div class="title">维修中工单</div><div class="value">{{ stats.workerProcessing }}</div></div></el-card></el-col>
+        <el-col :span="6"><el-card shadow="hover" class="data-card bg-green"><div class="card-info"><div class="title">已完成工单</div><div class="value">{{ stats.workerFinished }}</div></div></el-card></el-col>
         <el-col :span="6"><el-card shadow="hover" class="data-card bg-purple"><div class="card-info"><div class="title">平均满意度</div><div class="value">98<span class="unit">%</span></div></div></el-card></el-col>
       </el-row>
 
@@ -157,13 +159,13 @@
           </el-card>
 
           <el-card shadow="never" class="table-card">
-            <template #header><span class="header-title">📋 待处理工单</span></template>
+            <template #header><span class="header-title">📋 待处理真实工单</span></template>
             <el-table :data="workerPendingList" size="small" stripe border>
               <el-table-column prop="location" label="宿舍位置" width="140" />
               <el-table-column prop="title" label="报修简述" show-overflow-tooltip />
               <el-table-column prop="time" label="提单时间" width="140" />
               <el-table-column label="操作" width="80" align="center">
-                <template #default><el-button type="primary" link size="small" @click="goTo('/admin/repair')">接单</el-button></template>
+                <template #default><el-button type="primary" link size="small" @click="goTo('/admin/repair')">去处理</el-button></template>
               </el-table-column>
             </el-table>
           </el-card>
@@ -171,7 +173,7 @@
 
         <el-col :span="8">
           <el-card shadow="never" class="timeline-card" style="margin-bottom: 20px;">
-            <template #header><span class="header-title">📌 待办事项</span></template>
+            <template #header><span class="header-title">📌 待办事项 (本地备忘录)</span></template>
             <el-checkbox-group v-model="workerTodo" class="custom-todo">
               <el-checkbox label="1" style="display:block;margin-bottom:12px;">去后勤总仓领取本周维修耗材</el-checkbox>
               <el-checkbox label="2" style="display:block;margin-bottom:12px;">提交上月个人考勤与值班报表</el-checkbox>
@@ -200,7 +202,6 @@
       </el-row>
     </div>
 
-    <!-- ================= 4. 学生/默认视角 (roleId === 1 或 其它) ================= -->
     <div v-else>
       <el-row :gutter="20">
         <el-col :span="16">
@@ -219,24 +220,25 @@
             <el-col :span="12">
               <el-card shadow="never" class="table-card" style="height: 250px;">
                 <template #header><span class="header-title">📅 今日课表概览</span></template>
-                <el-empty description="今天没有课哦，好好休息吧~" :image-size="60" v-if="studentSchedule.length === 0" />
-                <div v-else class="recent-list">
+                <div class="recent-list" v-if="studentSchedule.length > 0">
                    <div class="recent-item" v-for="(course, idx) in studentSchedule" :key="idx">
-                      <el-tag size="small" type="primary" style="margin-right: 8px;">第{{ course.period }}大节</el-tag>
+                      <el-tag size="small" type="primary" style="margin-right: 8px;">第{{ course.period }}节</el-tag>
                       <span class="act-title"><strong>{{ course.name }}</strong> @ {{ course.loc }}</span>
                    </div>
                 </div>
+                <el-empty v-else description="今天没课哦，好好休息吧~" :image-size="60" />
               </el-card>
             </el-col>
             <el-col :span="12">
               <el-card shadow="never" class="timeline-card" style="height: 250px;">
                 <template #header><span class="header-title">📢 校园系统公告</span></template>
-                <div class="recent-list">
+                <div class="recent-list" v-if="systemNotices.length > 0">
                   <div class="recent-item" v-for="(notice, idx) in systemNotices" :key="idx">
                     <el-tag size="small" :type="notice.type" style="margin-right: 8px;">公告</el-tag>
                     <span class="act-title" style="color: #606266;">{{ notice.title }}</span>
                   </div>
                 </div>
+                <el-empty v-else description="暂无公告" :image-size="60" />
               </el-card>
             </el-col>
           </el-row>
@@ -251,7 +253,7 @@
                 <span class="act-title">{{ act.title }}</span>
               </div>
             </div>
-            <el-empty v-else description="暂无新活动" :image-size="50" />
+            <el-empty v-else description="近期暂无新活动" :image-size="50" />
           </el-card>
         </el-col>
       </el-row>
@@ -270,36 +272,25 @@ const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
 const userRole = computed(() => Number(userInfo.roleId) || 1) 
 const currentDate = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
+// 所有核心统计数据
 const stats = reactive({
   users: 0, allActivities: 0, lostfounds: 0, repairs: 0,
   myActivities: 0, myOngoing: 0, myParticipants: 0,
-  workerPending: 0, workerFinished: 0
+  workerPending: 0, workerProcessing: 0, workerFinished: 0
 })
 
+// 移除原有的假数据，全部变为响应式空数组准备承接后端真实数据
 const recentActivities = ref([])
 const adminMyActs = ref([])
-
-// ====== 前端占位模拟数据 (丰富页面展示用) ======
-const superTodo = ref(['1'])
-const adminTodo = ref(['1'])
-const workerTodo = ref(['1'])
-
-const workerPendingList = ref([
-  { location: '南校区-3舍-401室', title: '空调完全不制冷', time: '2026-05-04 08:30' },
-  { location: '东校区-1舍-202室', title: '洗手池水龙头漏水', time: '2026-05-04 09:15' },
-])
-const studentSchedule = ref([
-  { period: '1', name: '高等数学(下)', loc: '一教-101' },
-  { period: '3', name: '计算机网络', loc: '三教-402' }
-])
-const systemNotices = ref([
-  { title: '防诈骗预警：切勿私下转账交电费！', type: 'danger' },
-  { title: '关于图书馆期末延长开放时间的通知', type: 'warning' },
-  { title: '智慧校园失物招领模块全新上线', type: 'success' }
-])
-// ==============================================
-
+const workerPendingList = ref([])
+const studentSchedule = ref([])
+const systemNotices = ref([])
 const superLogs = ref([])
+
+// 本地记事本工具 (不存库，仅作前端交互展示)
+const superTodo = ref([])
+const adminTodo = ref([])
+const workerTodo = ref([])
 
 const goTo = (path) => {
   if (router.currentRoute.value.path !== path) router.push(path)
@@ -312,7 +303,17 @@ const getPercentage = (item) => {
 
 const fetchRoleData = async () => {
   try {
-    // 真实拉取活动数据
+    // 1. 全局：拉取系统公告 (学生和负责人界面需要展示)
+    request.get('/notice/list').then(res => {
+      if (res && res.length > 0) {
+        systemNotices.value = res.filter(item => item.isActive === 1).map(item => ({
+          title: item.title,
+          type: item.level || 'info'
+        })).slice(0, 4) // 只取最新的 4 条激活公告
+      }
+    }).catch(()=>{})
+
+    // 2. 全局：拉取真实的活动数据
     const actRes = await request.get('/activity/list')
     if (actRes) {
       recentActivities.value = [...actRes].sort((a, b) => new Date(b.createTime) - new Date(a.createTime)).slice(0, 5)
@@ -327,7 +328,7 @@ const fetchRoleData = async () => {
 
     // ================= 超管专属逻辑 =================
     if (userRole.value === 4) {
-      // 1. 拉取真实的系统风控日志
+      // 拉取真实的系统风控日志
       request.get('/log/recent').then(res => {
         if (res && res.length > 0) {
           superLogs.value = res.map(item => ({
@@ -340,17 +341,51 @@ const fetchRoleData = async () => {
         }
       }).catch(()=>{})
 
-      // 2. 模拟拉取全站其他统计数据(防报错兜底)
-      stats.users = 128
-      stats.lostfounds = 45
-      stats.repairs = 12
+      // 拉取真实的其余全站统计数据
+      request.get('/user/list').then(res => { if(res) stats.users = res.length }).catch(()=>{})
+      request.get('/lost-found/list').then(res => { if(res) stats.lostfounds = res.length }).catch(()=>{})
+      request.get('/repair/list').then(res => { if(res) stats.repairs = res.length }).catch(()=>{})
     }
 
     // ================= 维修工专属逻辑 =================
     if (userRole.value === 2) {
-      stats.workerPending = 3  
-      stats.workerFinished = 15 
+      // 拉取真实的工单列表
+      request.get('/repair/list').then(res => {
+        if (res && res.length > 0) {
+          // 提取待处理工单 (假设 status: 0 是待处理)
+          const pending = res.filter(item => item.status === 0)
+          stats.workerPending = pending.length
+          stats.workerProcessing = res.filter(item => item.status === 1).length
+          stats.workerFinished = res.filter(item => item.status === 2 || item.status === 3).length
+
+          // 填充最新的紧急待办表格
+          workerPendingList.value = pending.map(item => ({
+            location: item.dormLocation || '未填写地址',
+            title: item.title || item.description,
+            time: item.createTime ? item.createTime.substring(0, 16).replace('T', ' ') : ''
+          })).slice(0, 5)
+        }
+      }).catch(()=>{})
     }
+
+    // ================= 学生专属逻辑 =================
+    if (userRole.value === 1) {
+          // 获取当前学生的 ID，如果没有则默认用测试账号的 1001
+          const studentId = userInfo.id || 1001
+          // 假设当前是第 5 周 (你可以根据实际情况改成动态计算)
+          const currentWeek = 5 
+    
+          // ⚠️ 修复点：调用真实的 /course/weekly 接口，并带上必须的参数
+          request.get(`/course/weekly?studentId=${studentId}&week=${currentWeek}`).then(res => {
+            if (res && res.length > 0) {
+              studentSchedule.value = res.map(item => ({
+                 period: item.period || '待定',
+                 name: item.courseName || item.name || '未知课程',
+                 loc: item.location || '待定'
+              })).slice(0, 4)
+            }
+          }).catch(()=>{})
+        }
 
   } catch (error) {
     console.error('获取面板数据失败', error)
