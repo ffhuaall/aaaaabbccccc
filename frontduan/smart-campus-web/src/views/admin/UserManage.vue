@@ -84,6 +84,13 @@
         <el-form-item label="真实姓名" required>
           <el-input v-model="form.realName" placeholder="如：张三" />
         </el-form-item>
+		<el-form-item label="所属班级" prop="classId" v-if="form.roleId === 1">
+		  <el-select v-model="form.classId" placeholder="请为新生分配班级" clearable style="width: 100%;">
+		    <el-option label="100班 (计算机系 - 主修东校区)" :value="100" />
+		    <el-option label="101班 (经管系 - 主修南校区)" :value="101" />
+		    <el-option label="102班 (机械系 - 主修西校区)" :value="102" />
+		  </el-select>
+		</el-form-item>
         <el-form-item label="联系电话">
           <el-input v-model="form.phone" placeholder="选填" />
         </el-form-item>

@@ -55,7 +55,6 @@
         <el-form-item label="提醒级别" required>
           <el-select v-model="form.level" placeholder="请选择级别" style="width: 100%;">
             <el-option label="普通通知 (蓝色)" value="info" />
-            <el-option label="成功/喜报 (绿色)" value="success" />
             <el-option label="重要警告 (黄色)" value="warning" />
             <el-option label="紧急错误 (红色)" value="error" />
           </el-select>

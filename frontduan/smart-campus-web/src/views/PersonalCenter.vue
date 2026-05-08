@@ -191,8 +191,8 @@ const saveProfile = () => {
     if (valid) {
       loading.value = true
       try {
-        // const res = await request.post('/user/update', userForm)
-        await new Promise(resolve => setTimeout(resolve, 800))
+        const res = await request.post('/user/update-profile', userForm)
+        //await new Promise(resolve => setTimeout(resolve, 800))
         ElMessage.success('个人信息更新成功！')
         localStorage.setItem('userInfo', JSON.stringify(userForm))
       } catch (error) {
