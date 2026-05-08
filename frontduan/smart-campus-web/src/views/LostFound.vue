@@ -61,7 +61,7 @@
                 size="small" 
                 :type="item.status === 1 ? 'info' : (item.status === -1 ? 'danger' : 'success')"
               >
-                {{ item.status === 1 ? '已结案' : (item.status === -1 ? '已作废' : '寻找中') }}
+                {{ item.status === 1 ? '已完成' : (item.status === -1 ? '已作废' : '寻找中') }}
               </el-tag>
             </div>
           </div>

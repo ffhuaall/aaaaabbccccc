@@ -218,7 +218,7 @@ const handleForceCancel = (row) => {
 }
 
 const handleDelete = (id) => {
-  ElMessageBox.confirm('物理删除？', '危险', { type: 'error' }).then(async () => {
+  ElMessageBox.confirm('删除？', '危险', { type: 'error' }).then(async () => {
     await request.post(`/repair/delete/${id}`)
     ElMessage.success('已彻底删除')
     fetchAll()

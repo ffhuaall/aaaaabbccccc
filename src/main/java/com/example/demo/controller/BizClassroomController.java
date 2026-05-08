@@ -1,18 +1,17 @@
 package com.example.demo.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.common.Result;
+import com.example.demo.entity.BizClassroom;
 import com.example.demo.entity.BizCourseSchedule;
-import com.example.demo.mapper.BizCourseScheduleMapper;
+import com.example.demo.mapper.BizClassroomMapper;
+import com.example.demo.service.BizCourseScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
-import com.alibaba.fastjson.JSON;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -25,52 +24,71 @@ public class BizClassroomController {
     private StringRedisTemplate redisTemplate;
 
     @Autowired
-    private BizCourseScheduleMapper courseScheduleMapper;
+    private BizClassroomMapper classroomMapper;
 
-    // 假设学校所有的自习教室清单
-    private static final List<String> ALL_CLASSROOMS = Arrays.asList(
-            "教1-101", "教1-102", "教1-201", "教1-202",
-            "教2-101", "教2-304", "实验楼-302", "实验楼-401", "机房-501"
-    );
+    @Autowired
+    private BizCourseScheduleService courseScheduleService;
 
     /**
-     * 高并发场景：查询某天某节课的空闲教室 (改版：支持真实日期)
+     * 高可用空教室查询：引入校区、教学楼维度，并使用 Redis 抗并发
      */
     @GetMapping("/idle")
-    public Result<List<String>> getIdleClassrooms(@RequestParam String date, @RequestParam Integer period) {
-        
-        // 1. 将前端传来的 "2024-05-20" 自动转换为星期几 (1=周一, 7=周日)
-        LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        int dayOfWeek = localDate.getDayOfWeek().getValue();
+public Result<List<BizClassroom>> getIdleClassrooms(
+        @RequestParam(required = false) String campus,
+        @RequestParam(required = false) String building,
+        @RequestParam(required = false) Integer week,
+        @RequestParam(required = false) Integer dayOfWeek,
+        @RequestParam(required = false) Integer period) {
 
-        // 2. 缓存的 Key 现在基于具体的日期和节次
-        String redisKey = "idle_classroom:date:" + date + ":period:" + period;
+    // 1. 动态构造 Redis Key，缺失的参数用 "_" 代替
+    String redisKey = String.format("idle_room:%s:%s:w%s:d%s:p%s", 
+        campus == null ? "all" : campus, 
+        building == null ? "all" : building, 
+        week == null ? "x" : week, 
+        dayOfWeek == null ? "x" : dayOfWeek, 
+        period == null ? "x" : period);
 
-        // 3. 先查 Redis 缓存
-        String cachedData = redisTemplate.opsForValue().get(redisKey);
-        if (cachedData != null) {
-            List<String> idleRooms = JSON.parseArray(cachedData, String.class);
-            return Result.success(idleRooms);
-        }
-
-        // 4. Redis 未命中，穿透查询 MySQL 数据库
-        QueryWrapper<BizCourseSchedule> wrapper = new QueryWrapper<>();
-        wrapper.eq("day_of_week", dayOfWeek).eq("period", period);
-               
-        List<BizCourseSchedule> busySchedules = courseScheduleMapper.selectList(wrapper);
-        
-        // 提取被占用的教室名
-        List<String> busyRooms = busySchedules.stream()
-                .map(BizCourseSchedule::getLocation)
-                .collect(Collectors.toList());
-
-        // 5. 计算差集：所有教室 - 被占用教室 = 空闲教室
-        List<String> idleRooms = new ArrayList<>(ALL_CLASSROOMS);
-        idleRooms.removeAll(busyRooms);
-
-        // 6. 存入 Redis，并设置 1 小时过期
-        redisTemplate.opsForValue().set(redisKey, JSON.toJSONString(idleRooms), 1, TimeUnit.HOURS);
-
-        return Result.success(idleRooms);
+    String cachedData = redisTemplate.opsForValue().get(redisKey);
+    if (cachedData != null) {
+        return Result.success(JSON.parseArray(cachedData, BizClassroom.class));
     }
+
+    // 2. 查询物理教室全集 (动态添加条件)
+    QueryWrapper<BizClassroom> roomWrapper = new QueryWrapper<>();
+    if (campus != null) roomWrapper.eq("campus", campus);
+    if (building != null) roomWrapper.eq("building", building);
+    List<BizClassroom> allRooms = classroomMapper.selectList(roomWrapper);
+
+    // 3. 如果没有提供完整的【时间三元素】，则认为用户只是想看该区域有哪些教室，不进行占用剔除
+    if (week == null || dayOfWeek == null || period == null) {
+        // 直接存入 Redis 并返回全集
+        redisTemplate.opsForValue().set(redisKey, JSON.toJSONString(allRooms), 12, TimeUnit.HOURS);
+        return Result.success(allRooms);
+    }
+
+    // 4. 如果时间参数完整，则执行原有的“差集算法”
+    QueryWrapper<BizCourseSchedule> courseWrapper = new QueryWrapper<>();
+    courseWrapper.eq("day_of_week", dayOfWeek).eq("period", period);
+    if (campus != null && building != null) {
+        courseWrapper.like("location", campus + "-" + building);
+    }
+    
+    List<BizCourseSchedule> rawSchedules = courseScheduleService.list(courseWrapper);
+
+    List<String> busyLocations = rawSchedules.stream().filter(course -> {
+        if (week < course.getStartWeek() || week > course.getEndWeek()) return false;
+        int weekType = course.getWeekType();
+        if (weekType == 1 && week % 2 == 0) return false;
+        if (weekType == 2 && week % 2 != 0) return false;
+        return true;
+    }).map(BizCourseSchedule::getLocation).collect(Collectors.toList());
+
+    List<BizClassroom> idleRooms = allRooms.stream().filter(room -> {
+        String standardName = room.getCampus() + "-" + room.getBuilding() + "-" + room.getRoomNo();
+        return !busyLocations.contains(standardName);
+    }).collect(Collectors.toList());
+
+    redisTemplate.opsForValue().set(redisKey, JSON.toJSONString(idleRooms), 12, TimeUnit.HOURS);
+    return Result.success(idleRooms);
+  }
 }

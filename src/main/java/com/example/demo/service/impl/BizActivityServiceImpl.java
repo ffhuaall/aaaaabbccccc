@@ -1,5 +1,6 @@
 package com.example.demo.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.dto.UserItemScoreDTO;
 import com.example.demo.entity.BizActivity;
@@ -39,8 +40,17 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
 
         Map<Long, Double> targetUserItems = userItemMatrix.get(targetUserId);
         if (targetUserItems == null || targetUserItems.isEmpty()) {
-            // 如果这个新用户没有任何行为（冷启动问题），可以直接返回最新发布的活动（这里为了简便暂不处理）
-            return Collections.emptyList();
+            // 🌟 【冷启动优化】如果新用户没有历史行为，则推荐“全站最热门”的活动
+            System.out.println("【冷启动拦截】该用户无行为记录，执行基于热度的全局推荐策略");
+            
+            // 查询所有状态为报名中 (status=1) 的活动
+            List<BizActivity> allActive = this.list(new QueryWrapper<BizActivity>().eq("status", 1));
+            
+            // 按照前端展示需要的当前报名人数进行简单的模拟倒序（如果你数据库里没存现成的人数，按ID倒序最新发布也行）
+            return allActive.stream()
+                    .sorted((a, b) -> b.getId().compareTo(a.getId())) // 这里用最新发布代替热度
+                    .limit(topN)
+                    .collect(Collectors.toList());
         }
 
         // 3. 计算目标用户与其他用户的余弦相似度

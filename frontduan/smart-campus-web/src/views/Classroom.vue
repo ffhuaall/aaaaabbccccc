@@ -7,26 +7,48 @@
         </div>
       </template>
 
-      <div class="filter-section">
+      <div class="filter-section">  
         <el-form :inline="true" :model="queryForm" class="demo-form-inline">
-          <el-form-item label="查询日期">
-            <el-date-picker 
-              v-model="queryForm.date" 
-              type="date" 
-              placeholder="选择日期" 
-              value-format="YYYY-MM-DD" 
-              style="width: 150px" 
-              :clearable="false"
-            />
+          
+          <el-form-item label="校区">
+            <el-select v-model="queryForm.campus" placeholder="请选择" style="width: 120px" clearable>
+              <el-option label="东校区" value="东校区" />
+              <el-option label="南校区" value="南校区" />
+              <el-option label="西校区" value="西校区" />
+            </el-select>
           </el-form-item>
           
+          <el-form-item label="教学楼">
+            <el-select v-model="queryForm.building" placeholder="请选择" style="width: 140px" :disabled="!queryForm.campus" clearable>
+              <el-option v-for="b in currentBuildings" :key="b" :label="b" :value="b" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="周次">
+            <el-select v-model="queryForm.week" placeholder="选择周次" style="width: 110px" clearable>
+              <el-option v-for="i in 20" :key="i" :label="`第 ${i} 周`" :value="i" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="星期" clearable>
+            <el-select v-model="queryForm.dayOfWeek" placeholder="选择星期" style="width: 100px" clearable>
+              <el-option label="周一" :value="1" />
+              <el-option label="周二" :value="2" />
+              <el-option label="周三" :value="3" />
+              <el-option label="周四" :value="4" />
+              <el-option label="周五" :value="5" />
+              <el-option label="周六" :value="6" />
+              <el-option label="周日" :value="7" />
+            </el-select>
+          </el-form-item>
+          		  
           <el-form-item label="上课节次">
-            <el-select v-model="queryForm.period" placeholder="选择节次" style="width: 150px">
-              <el-option label="第 1-2 节 (上午)" :value="1" />
-              <el-option label="第 3-4 节 (上午)" :value="2" />
-              <el-option label="第 5-6 节 (下午)" :value="3" />
-              <el-option label="第 7-8 节 (下午)" :value="4" />
-              <el-option label="第 9-10 节 (晚自习)" :value="5" />
+            <el-select v-model="queryForm.period" placeholder="选择节次" style="width: 150px" clearable>
+              <el-option label="第 1 大节 (1-2节)" :value="1" />
+              <el-option label="第 2 大节 (3-4节)" :value="2" />
+              <el-option label="第 3 大节 (5-6节)" :value="3" />
+              <el-option label="第 4 大节 (7-8节)" :value="4" />
+              <el-option label="第 5 大节 (晚课)" :value="5" />
             </el-select>
           </el-form-item>
 
@@ -40,20 +62,27 @@
 
       <div v-loading="loading" class="result-section">
         <div v-if="hasSearched">
-           <el-table :data="tableData" border stripe style="width: 100%; max-width: 600px;">
+           <el-table :data="tableData" border stripe style="width: 100%; max-width: 700px;">
               <el-table-column type="index" label="序号" width="80" align="center" />
               <el-table-column prop="roomName" label="教室名称" align="center" />
+              
+              <el-table-column prop="capacity" label="容纳人数" align="center" width="120">
+                 <template #default="scope">
+                    <el-tag type="info" size="small">{{ scope.row.capacity }} 人</el-tag>
+                 </template>
+              </el-table-column>
+
               <el-table-column label="当前状态" align="center" width="120">
                  <template #default>
                     <el-tag type="success" effect="plain">空闲可用</el-tag>
                  </template>
               </el-table-column>
-              <template #empty><el-empty description="该时间段暂无空闲教室" /></template>
+              <template #empty><el-empty description="该时间段所选教学楼暂无空闲教室" /></template>
            </el-table>
         </div>
         
         <div v-else class="welcome-state">
-          请在上方选择日期和节次进行查询
+          请在上方选择校区、教学楼及时间点进行查询
         </div>
       </div>
     </el-card>
@@ -61,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
 
@@ -69,34 +98,67 @@ const loading = ref(false)
 const hasSearched = ref(false)
 const idleRooms = ref([])
 
-// 默认获取今天的日期，格式化为 YYYY-MM-DD
-const getToday = () => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+// 1. 定义校区与教学楼的映射关系
+const buildingMap = {
+  '东校区': ['第一教学楼', '第二教学楼'],
+  '南校区': ['第三教学楼'],
+  '西校区': ['第四教学楼', '实验大楼']
 }
 
+// 2. 表单数据，初始设为 null 以支持可选查询
 const queryForm = reactive({
-  date: getToday(),
-  period: 1
+  campus: '',   
+  building: '', 
+  week: null,   
+  dayOfWeek: null,
+  period: null
 })
 
-// 将简单的字符串数组转换为 El-Table 需要的对象数组格式
+// 3. 监听校区变化，自动重置教学楼，防止出现“东校区-第三教学楼”的错误组合
+watch(() => queryForm.campus, () => {
+  queryForm.building = ''
+})
+
+// 4. 计算当前选定校区下拥有的教学楼列表
+const currentBuildings = computed(() => {
+  return queryForm.campus ? buildingMap[queryForm.campus] : []
+})
+
 const tableData = computed(() => {
-  return idleRooms.value.map(room => ({ roomName: room }))
+  return idleRooms.value.map(room => ({
+    roomName: `${room.campus}-${room.building}-${room.roomNo}室`,
+    capacity: room.capacity || 50
+  }))
 })
 
 const handleSearch = async () => {
-  if (!queryForm.date) {
-    ElMessage.warning('请选择查询日期')
+  // 基础校验：至少得选个校区，否则数据量太大
+  if (!queryForm.campus) {
+    ElMessage.warning('请至少选择一个校区进行查询')
     return
   }
+  
   loading.value = true
   hasSearched.value = true
+  
   try {
-    const res = await request.get(`/classroom/idle?date=${queryForm.date}&period=${queryForm.period}`)
+    // 构造参数对象，过滤掉为 null 或空的字段
+    const params = {}
+    if (queryForm.campus) params.campus = queryForm.campus
+    if (queryForm.building) params.building = queryForm.building
+    if (queryForm.week) params.week = queryForm.week
+    if (queryForm.dayOfWeek) params.dayOfWeek = queryForm.dayOfWeek
+    if (queryForm.period) params.period = queryForm.period
+
+    const res = await request.get('/classroom/idle', { params })
     idleRooms.value = res || []
+    
+    if (idleRooms.value.length === 0) {
+      ElMessage.info('暂无符合条件的教室')
+    }
   } catch (error) {
-    console.error('查询失败', error)
+    console.error('查询失败:', error)
+    ElMessage.error('查询失败，请检查网络')
   } finally {
     loading.value = false
   }

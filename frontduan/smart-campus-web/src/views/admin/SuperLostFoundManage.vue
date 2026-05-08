@@ -73,7 +73,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-if="scope.row.status !== -1" icon="CircleClose" @click="handleForceCancel(scope.row.id)">强制下架</el-dropdown-item>
-                    <el-dropdown-item icon="Delete" style="color: #F56C6C" @click="handleDelete(scope.row.id)">物理删除</el-dropdown-item>
+                    <el-dropdown-item icon="Delete" style="color: #F56C6C" @click="handleDelete(scope.row.id)">删除</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -198,7 +198,7 @@ const handleForceCancel = (id) => {
 }
 
 const handleDelete = (id) => {
-  ElMessageBox.confirm('物理删除将不可恢复，确认执行？', '危险操作', { type: 'error' }).then(async () => {
+  ElMessageBox.confirm('删除将不可恢复，确认执行？', '危险操作', { type: 'error' }).then(async () => {
     await request.post(`/lost-found/delete/${id}`)
     ElMessage.success('数据已从底层删除')
     fetchList()
