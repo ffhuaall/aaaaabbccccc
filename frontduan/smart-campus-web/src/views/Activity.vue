@@ -175,16 +175,21 @@ const selectedItem = ref(null)
 const fetchList = async () => {
   loading.value = true
   try {
+    // 1. 获取活动大厅的全量列表
     const res = await request.get('/activity/list')
     allList.value = res || []
     
-    // 假设后端有推荐接口，先用slice模拟
-    recommendList.value = allList.value.slice(0, 3) 
+    // 2. ⚡️ 核心修复：干掉 slice 模拟，调用真实的协同过滤算法接口！
+    // 把当前登录人的 userId 传给后端，索要 3 个推荐位
+    const recRes = await request.get(`/activity/recommend?userId=${currentUserId}&topN=3`)
+    recommendList.value = recRes || [] 
 
-    // 【核心修复】：后端返回的已经是纯数字的列表 [1, 2, 3]，不需要 map 映射
+    // 3. 获取当前用户已报名的活动ID列表
     const myRes = await request.get(`/activity/my-registered?userId=${currentUserId}`)
     registeredIds.value = myRes || []
-  } catch (e) { console.error(e) } finally {
+  } catch (e) { 
+    console.error('获取活动数据失败:', e) 
+  } finally {
     loading.value = false
   }
 }

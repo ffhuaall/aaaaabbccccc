@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.dto.UserItemScoreDTO;
 import com.example.demo.entity.BizActivity;
+import com.example.demo.entity.BizActivityRegistration;
 import com.example.demo.mapper.BizActivityMapper;
+import com.example.demo.mapper.BizActivityRegistrationMapper;
 import com.example.demo.service.BizActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,42 +20,41 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
     @Autowired
     private BizActivityMapper activityMapper;
 
+    @Autowired
+    private BizActivityRegistrationMapper registrationMapper;
     /**
      * 基于用户的协同过滤推荐算法
      * @param targetUserId 当前需要被推荐的学生ID
      * @param topN 推荐多少个活动
      * @return 推荐的活动列表
      */
+    @Override
     public List<BizActivity> recommendActivities(Long targetUserId, int topN) {
-        // 1. 获取所有用户的评分数据
-        List<UserItemScoreDTO> allScores = activityMapper.getUserItemScores();
-        if (allScores == null || allScores.isEmpty()) {
-            return Collections.emptyList(); // 没数据就不推荐
-        }
+        // 1. ⚡️ 核心修复：直接从【报名表】捞取所有有效的报名记录作为数据源！
+        QueryWrapper<BizActivityRegistration> wrapper = new QueryWrapper<>();
+        wrapper.eq("status", 1); 
+        List<BizActivityRegistration> allRegistrations = registrationMapper.selectList(wrapper);
 
-        // 2. 将数据转换为: Map<用户ID, Map<活动ID, 评分>>
+        // 2. 将报名记录转换为评分矩阵: Map<用户ID, Map<活动ID, 评分>>
         Map<Long, Map<Long, Double>> userItemMatrix = new HashMap<>();
-        for (UserItemScoreDTO score : allScores) {
-            userItemMatrix.computeIfAbsent(score.getUserId(), k -> new HashMap<>())
-                          .put(score.getActivityId(), score.getScore());
+        for (BizActivityRegistration reg : allRegistrations) {
+            // 只要报名了，我们就认为该用户对这个活动有极强的兴趣，直接记为 1.0 分
+            userItemMatrix.computeIfAbsent(reg.getUserId(), k -> new HashMap<>())
+                          .put(reg.getActivityId(), 1.0);
         }
 
         Map<Long, Double> targetUserItems = userItemMatrix.get(targetUserId);
+        
+        // 3. 🌟 【冷启动 & 无数据兜底策略】
         if (targetUserItems == null || targetUserItems.isEmpty()) {
-            // 🌟 【冷启动优化】如果新用户没有历史行为，则推荐“全站最热门”的活动
-            System.out.println("【冷启动拦截】该用户无行为记录，执行基于热度的全局推荐策略");
-            
-            // 查询所有状态为报名中 (status=1) 的活动
-            List<BizActivity> allActive = this.list(new QueryWrapper<BizActivity>().eq("status", 1));
-            
-            // 按照前端展示需要的当前报名人数进行简单的模拟倒序（如果你数据库里没存现成的人数，按ID倒序最新发布也行）
-            return allActive.stream()
-                    .sorted((a, b) -> b.getId().compareTo(a.getId())) // 这里用最新发布代替热度
-                    .limit(topN)
-                    .collect(Collectors.toList());
+            System.out.println("【冷启动拦截】该用户无报名记录，执行基于热度的全局推荐策略");
+            // 降级策略：直接查出全站最新的/最热门的活动推荐给他
+            QueryWrapper<BizActivity> hotWrapper = new QueryWrapper<>();
+            hotWrapper.eq("status", 1).orderByDesc("id").last("LIMIT " + topN);
+            return this.list(hotWrapper);
         }
 
-        // 3. 计算目标用户与其他用户的余弦相似度
+        // 4. 计算目标用户与其他用户的余弦相似度
         Map<Long, Double> userSimilarities = new HashMap<>();
         for (Map.Entry<Long, Map<Long, Double>> entry : userItemMatrix.entrySet()) {
             Long otherUserId = entry.getKey();
@@ -66,7 +67,7 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
             }
         }
 
-        // 4. 根据相似度给候选活动打分
+        // 5. 根据相似度给候选活动打分
         Map<Long, Double> candidateActivityScores = new HashMap<>();
         for (Map.Entry<Long, Double> simEntry : userSimilarities.entrySet()) {
             Long similarUserId = simEntry.getKey();
@@ -75,25 +76,27 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
             Map<Long, Double> similarUserItems = userItemMatrix.get(similarUserId);
             for (Map.Entry<Long, Double> itemEntry : similarUserItems.entrySet()) {
                 Long activityId = itemEntry.getKey();
-                // 核心过滤：只推荐目标用户没看过的活动
+                // 核心过滤：只推荐目标用户没报名过的活动！
                 if (!targetUserItems.containsKey(activityId)) {
                     double currentScore = candidateActivityScores.getOrDefault(activityId, 0.0);
-                    // 候选活动的得分 = 累加 (相似用户的相似度 * 相似用户对该活动的评分)
                     candidateActivityScores.put(activityId, currentScore + (similarity * itemEntry.getValue()));
                 }
             }
         }
 
-        // 5. 对候选活动按得分降序排序，取前 TopN 个
+        // 6. 对候选活动按得分降序排序，取前 TopN 个
         List<Long> recommendedActivityIds = candidateActivityScores.entrySet().stream()
                 .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
                 .limit(topN)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
-        // 6. 根据 ID 查询真实的活动对象返回
+        // 7. 兜底返回与查询
         if (recommendedActivityIds.isEmpty()) {
-            return Collections.emptyList();
+            System.out.println("【算法兜底】没有算出合适的推荐，降级为全局推荐");
+            QueryWrapper<BizActivity> hotWrapper = new QueryWrapper<>();
+            hotWrapper.eq("status", 1).orderByDesc("id").last("LIMIT " + topN);
+            return this.list(hotWrapper);
         }
         return this.listByIds(recommendedActivityIds);
     }
