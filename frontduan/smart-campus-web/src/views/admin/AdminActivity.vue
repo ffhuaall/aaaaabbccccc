@@ -128,7 +128,7 @@
       <div v-if="previewActivity" class="audit-detail">
         <div class="poster-preview">
           <el-image v-if="previewActivity.coverImage" :src="previewActivity.coverImage" fit="contain" class="full-poster" />
-          <div v-else class="empty-poster">未上传海报，将显示分类默认渐变背景</div>
+          <div v-else class="empty-poster">未上传海报</div>
         </div>
         <el-descriptions :column="2" border size="small" direction="vertical">
           <el-descriptions-item label="活动名称" :span="2"><strong>{{ previewActivity.title }}</strong></el-descriptions-item>
@@ -183,7 +183,7 @@
         <el-table-column prop="realName" label="姓名" />
         <el-table-column prop="username" label="学号" />
         <el-table-column label="状态"><template #default="s"><el-tag size="small">{{ s.row.status === 1 ? '已报名' : '已取消' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作"><template #default="s"><el-button type="danger" link size="small" @click="auditUser(s.row.regId, 0)">劝退</el-button></template></el-table-column>
+        <el-table-column label="操作"><template #default="s"><el-button type="danger" link size="small" @click="auditUser(s.row.regId, 0)">取消资格</el-button></template></el-table-column>
       </el-table>
     </el-dialog>
   </div>
@@ -289,7 +289,7 @@ const viewParticipants = async (row) => {
 
 const auditUser = async (regId) => {
   await request.post(`/activity/audit-participant?regId=${regId}&status=0`)
-  ElMessage.success('已劝退')
+  ElMessage.success('已取消资格')
   viewParticipants(selectedActivity.value)
   fetchList() 
 }

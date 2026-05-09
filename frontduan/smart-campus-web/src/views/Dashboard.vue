@@ -3,8 +3,8 @@
     
     <div class="welcome-box">
       <div class="welcome-text">
-        <h2>早安，{{ userInfo.realName || userInfo.username || '同学' }}！</h2>
-        <p>今天是 {{ currentDate }}，这里是智慧校园中央控制台，各项服务平稳运行中。</p>
+        <h2>欢迎回来，{{ userInfo.realName || userInfo.username || '同学' }}！</h2>
+        <p>今天是 {{ currentDate }}</p>
       </div>
       <img src="@/assets/hero.png" class="welcome-img" alt="welcome" />
     </div>
@@ -88,7 +88,7 @@
             <div class="quick-navs" style="justify-content: flex-start; gap: 40px; padding-left: 20px;">
               <div class="nav-item" @click="goTo('/admin/activity')"><div class="nav-icon" style="background:#f6ffed;color:#52c41a;"><el-icon><Plus /></el-icon></div><span>策划新活动</span></div>
               <div class="nav-item" @click="goTo('/admin/activity')"><div class="nav-icon" style="background:#e6f7ff;color:#1890ff;"><el-icon><Tickets /></el-icon></div><span>名单与核销</span></div>
-              <div class="nav-item" @click="goTo('/personal')"><div class="nav-icon" style="background:#f9f0ff;color:#722ed1;"><el-icon><User /></el-icon></div><span>部门资料维护</span></div>
+              <div class="nav-item" @click="goTo('/personal')"><div class="nav-icon" style="background:#f9f0ff;color:#722ed1;"><el-icon><User /></el-icon></div><span>个人资料编辑</span></div>
             </div>
           </el-card>
 
@@ -206,7 +206,7 @@
       <el-row :gutter="20">
         <el-col :span="16">
           <el-card shadow="never" class="nav-card" style="margin-bottom: 20px;">
-            <template #header><span class="header-title">🎯 校园快捷服务</span></template>
+            <template #header><span class="header-title">校园快捷入口</span></template>
             <div class="quick-navs">
               <div class="nav-item" @click="goTo('/activity')"><div class="nav-icon" style="background:#f9f0ff;color:#722ed1;"><el-icon><Calendar /></el-icon></div><span>活动大厅</span></div>
               <div class="nav-item" @click="goTo('/lost-found')"><div class="nav-icon" style="background:#fffb8f;color:#faad14;"><el-icon><Search /></el-icon></div><span>寻物启事</span></div>

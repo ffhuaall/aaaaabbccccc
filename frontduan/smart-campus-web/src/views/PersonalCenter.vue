@@ -9,7 +9,8 @@
             <!-- action 需要换成你后端实际的文件上传接口 -->
             <el-upload
               class="avatar-uploader"
-              action="http://localhost:8080/upload"
+              action=""
+		      :http-request="customUpload"
               :show-file-list="false"
               :headers="uploadHeaders"
               :on-success="handleAvatarSuccess"
@@ -169,6 +170,7 @@ const roleConfig = computed(() => {
   }
 })
 
+// 1. 头像上传前的格式和大小校验 (保留你的原逻辑)
 const beforeAvatarUpload = (file) => {
   const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif'
   const isLt2M = file.size / 1024 / 1024 < 2
@@ -177,14 +179,31 @@ const beforeAvatarUpload = (file) => {
   return isImage && isLt2M
 }
 
-const handleAvatarSuccess = (res) => {
-  if (res.code === 200) {
-    userForm.avatar = res.data
-    ElMessage.success('头像上传成功！记得点击保存生效哦。')
-  } else {
-    ElMessage.error(res.message || '头像上传失败')
+// 2. ⚡️ 核心修复：自定义的上传方法，彻底解决跨域问题
+const customUpload = async (options) => {
+  const formData = new FormData()
+  formData.append('file', options.file)
+
+  try {
+    // 这里完美对齐后端的 /file/upload 接口，且通过 request 享受代理
+    const res = await request.post('/file/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
+    // 如果咱们的 request.js 拦截器直接返回了 data 层 (即那个 URL 字符串)
+    if (res) {
+      userForm.avatar = res 
+      ElMessage.success('头像上传成功！记得点击底部保存按钮哦')
+    }
+  } catch (error) {
+    console.error('上传头像失败:', error)
+    ElMessage.error('头像上传失败，请检查网络或后端接口')
   }
 }
+
+// 3. 废弃原有的 handleAvatarSuccess (因为被 customUpload 接管了)
 
 const saveProfile = () => {
   formRef.value.validate(async (valid) => {
@@ -192,7 +211,6 @@ const saveProfile = () => {
       loading.value = true
       try {
         const res = await request.post('/user/update-profile', userForm)
-        //await new Promise(resolve => setTimeout(resolve, 800))
         ElMessage.success('个人信息更新成功！')
         localStorage.setItem('userInfo', JSON.stringify(userForm))
       } catch (error) {
@@ -220,7 +238,6 @@ const pwdForm = reactive({
   confirmPassword: ''
 })
 
-// 自定义校验规则：检查两次密码是否一致
 const validateConfirmPwd = (rule, value, callback) => {
   if (value !== pwdForm.newPassword) {
     callback(new Error('两次输入的新密码不一致!'))
@@ -243,7 +260,6 @@ const pwdRules = {
 
 const openPwdDialog = () => {
   pwdDialogVisible.value = true
-  // 每次打开弹窗清空上一次填写的残留
   pwdForm.oldPassword = ''
   pwdForm.newPassword = ''
   pwdForm.confirmPassword = ''
@@ -254,23 +270,17 @@ const submitPassword = () => {
     if (valid) {
       pwdLoading.value = true
       try {
-        // 把用户ID带上发给后端
         const submitData = {
           userId: userForm.id,
           oldPassword: pwdForm.oldPassword,
           newPassword: pwdForm.newPassword
         }
         
-        // ⚠️ 等你后端写好 User 接口后，把下面这行注释解开
         await request.post('/user/update-password', submitData)
-        
-        // 模拟请求成功
-        //await new Promise(resolve => setTimeout(resolve, 1000))
         
         ElMessage.success('安全密码修改成功，请使用新密码重新登录！')
         pwdDialogVisible.value = false
         
-        // 强制踢出登录，跳转回登录页
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
         router.push('/login')

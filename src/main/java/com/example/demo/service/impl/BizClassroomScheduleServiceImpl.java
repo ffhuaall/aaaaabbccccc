@@ -1,50 +1,87 @@
 package com.example.demo.service.impl;
 
-import com.example.demo.dto.IdleClassroomDTO;
-import com.example.demo.mapper.BizClassroomScheduleMapper;
+import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.demo.entity.BizClassroom;
+import com.example.demo.entity.BizCourseSchedule;
+import com.example.demo.mapper.BizClassroomMapper;
 import com.example.demo.service.BizClassroomScheduleService;
+import com.example.demo.service.BizCourseScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
-public class BizClassroomScheduleServiceImpl implements BizClassroomScheduleService {
+public class BizClassroomScheduleServiceImpl extends ServiceImpl<BizClassroomMapper, BizClassroom> implements BizClassroomScheduleService {
 
     @Autowired
-    private BizClassroomScheduleMapper scheduleMapper;
+    private StringRedisTemplate redisTemplate;
 
     @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private BizCourseScheduleService courseScheduleService;
 
     @Override
-    public List<IdleClassroomDTO> getIdleClassrooms(LocalDate date, Integer period) {
-        // 1. 构造 Redis 的 Key (例如： smart_campus:idle_room:2026-05-20:3 )
-        String redisKey = "smart_campus:idle_room:" + date.toString() + ":" + period;
+    public List<BizClassroom> getIdleClassrooms(String campus, String building, Integer week, Integer dayOfWeek, Integer period) {
+        // 1. 构造 Redis Key
+        String redisKey = String.format("idle_room:%s:%s:w%s:d%s:p%s", 
+            campus == null ? "all" : campus, 
+            building == null ? "all" : building, 
+            week == null ? "x" : week, 
+            dayOfWeek == null ? "x" : dayOfWeek, 
+            period == null ? "x" : period);
 
-        // 2. 尝试从 Redis 内存中获取数据
-        Object cachedData = redisTemplate.opsForValue().get(redisKey);
-        
+        // 2. 尝试获取缓存
+        String cachedData = redisTemplate.opsForValue().get(redisKey);
         if (cachedData != null) {
-            // 如果 Redis 里有，直接返回，这就是抗住高并发的秘密！完全不走数据库！
-            System.out.println("【Redis 缓存命中】直接从内存返回空闲教室数据...");
-            return (List<IdleClassroomDTO>) cachedData;
+            System.out.println("【Redis 命中】极速返回数据 -> " + redisKey);
+            return JSON.parseArray(cachedData, BizClassroom.class);
         }
 
-        // 3. 如果 Redis 里没有（缓存未命中），则去查询 MySQL 数据库
-        System.out.println("【Redis 缓存未命中】查询 MySQL 数据库...");
-        List<IdleClassroomDTO> idleClassrooms = scheduleMapper.findIdleClassrooms(date, period);
+        System.out.println("【Redis 未命中】执行差集算法 -> " + redisKey);
 
-        // 4. 将查到的结果塞入 Redis，并设置一个过期时间（比如 2 小时）
-        // 这样接下来 2 小时内的所有重复查询，都会被上面的第 2 步直接拦截并返回
-        if (idleClassrooms != null && !idleClassrooms.isEmpty()) {
-            redisTemplate.opsForValue().set(redisKey, idleClassrooms, 2, TimeUnit.HOURS);
-            System.out.println("【Redis 缓存写入】已将数据库查询结果同步至 Redis！");
+        // 3. 查全集
+        QueryWrapper<BizClassroom> roomWrapper = new QueryWrapper<>();
+        if (campus != null) roomWrapper.eq("campus", campus);
+        if (building != null) roomWrapper.eq("building", building);
+        List<BizClassroom> allRooms = this.list(roomWrapper);
+
+        // 4. 逻辑处理：如果不具备时间三元素，直接返回物理全集
+        if (week == null || dayOfWeek == null || period == null) {
+            redisTemplate.opsForValue().set(redisKey, JSON.toJSONString(allRooms), 12, TimeUnit.HOURS);
+            return allRooms;
         }
 
-        return idleClassrooms;
+        // 5. 核心差集算法：查占用集并过滤
+        QueryWrapper<BizCourseSchedule> courseWrapper = new QueryWrapper<>();
+        courseWrapper.eq("day_of_week", dayOfWeek).eq("period", period);
+        if (campus != null && building != null) {
+            courseWrapper.like("location", campus + "-" + building);
+        }
+        
+        List<BizCourseSchedule> rawSchedules = courseScheduleService.list(courseWrapper);
+
+        // 应用单双周、起止周流式过滤
+        List<String> busyLocations = rawSchedules.stream().filter(course -> {
+            if (week < course.getStartWeek() || week > course.getEndWeek()) return false;
+            int weekType = course.getWeekType();
+            if (weekType == 1 && week % 2 == 0) return false;
+            if (weekType == 2 && week % 2 != 0) return false;
+            return true;
+        }).map(BizCourseSchedule::getLocation).collect(Collectors.toList());
+
+        // 计算差集
+        List<BizClassroom> idleRooms = allRooms.stream().filter(room -> {
+            String standardName = room.getCampus() + "-" + room.getBuilding() + "-" + room.getRoomNo();
+            return !busyLocations.contains(standardName);
+        }).collect(Collectors.toList());
+
+        // 6. 写入缓存并返回
+        redisTemplate.opsForValue().set(redisKey, JSON.toJSONString(idleRooms), 12, TimeUnit.HOURS);
+        return idleRooms;
     }
 }

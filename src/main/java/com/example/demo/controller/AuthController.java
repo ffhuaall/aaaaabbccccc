@@ -56,6 +56,9 @@ public class AuthController {
         data.put("username", user.getUsername());
         data.put("realName", user.getRealName());
         data.put("roleId", user.getRoleId());
+        data.put("avatar", user.getAvatar()); 
+        data.put("phone", user.getPhone());
+        data.put("createTime", user.getCreateTime());
 
         return Result.success(data);
     }
