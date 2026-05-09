@@ -29,24 +29,19 @@ public class BizLostFoundController {
     @Autowired
     private BizLostFoundCommentService commentService;
 
-    // 【新增】注入日志 Mapper
     @Autowired
     private SysLogMapper logMapper;
 
-    /**
-     * 获取失物招领列表大厅 (前端 fetchList 调用的就是这里)
-     */
+    //获取失物招领列表大厅
     @GetMapping("/list")
     public Result<List<BizLostFound>> getList() {
-        // 按照发布时间倒序排列，最新的在最前面
+        //按照发布时间倒序排列，最新的在最前面
         QueryWrapper<BizLostFound> wrapper = new QueryWrapper<>();
         wrapper.orderByDesc("create_time");
         return Result.success(lostFoundService.list(wrapper));
     }
 
-    /**
-     * 发布失物/招领信息
-     */
+    //发布失物/招领信息
     @PostMapping("/publish")
     public Result<Boolean> publish(@RequestBody BizLostFound lostFound) {
         if (lostFound.getPublisherId() == null) {
@@ -56,18 +51,14 @@ public class BizLostFoundController {
         return Result.success(success);
     }
 
-    /**
-     * 关键字全文搜索 (调用 ES)
-     */
+    //关键字es全文搜索
     @GetMapping("/search")
     public Result<List<EsLostFound>> search(@RequestParam String keyword) {
         List<EsLostFound> result = lostFoundService.searchLostFound(keyword);
         return Result.success(result);
     }
 
-    /**
-     * 标记失物招领为已结案（找到了/归还了）
-     */
+    //标记失物招领为已完成
     @PostMapping("/resolve/{id}")
     public Result<Boolean> resolveItem(@PathVariable Long id) {
         BizLostFound item = lostFoundService.getById(id);
@@ -79,18 +70,15 @@ public class BizLostFoundController {
         return Result.error(400, "记录不存在");
     }
 
-    /**
-     * 删除失物招领记录
-     */
+    // 删除失物招领记录
     @PostMapping("/delete/{id}")
     public Result<Boolean> deleteItem(@PathVariable Long id) {
         BizLostFound item = lostFoundService.getById(id);
         boolean success = lostFoundService.removeById(id);
 
         if (success && item != null) {
-            // 🌟 【风控埋点】记录删除操作
             SysLog log = new SysLog();
-            log.setUsername("superadmin"); // 实际可从Token提取
+            log.setUsername("superadmin");
             log.setModule("失物招领");
             log.setAction("物理删除");
             log.setType("danger");
@@ -101,9 +89,7 @@ public class BizLostFoundController {
         return Result.success(success);
     }
 
-    /**
-     * 1. 认领/找回物品 (点击确认认领时调用)
-     */
+    //认领物品
     @PostMapping("/claim/{id}")
     public Result<Boolean> claimItem(@PathVariable Long id, @RequestParam Long claimerId) {
         BizLostFound item = lostFoundService.getById(id);
@@ -126,25 +112,19 @@ public class BizLostFoundController {
         return Result.error(400, "操作失败：物品可能已被他人认领");
     }
 
-    /**
-     * 2. 留言功能：为物品添加评论/留言
-     */
+    //留言功能：为物品添加评论/留言
     @PostMapping("/comment/add")
     public Result<Boolean> addComment(@RequestBody BizLostFoundComment comment) {
         return Result.success(commentService.save(comment));
     }
 
-    /**
-     * 3. 获取某件物品的所有留言
-     */
+    //获取某件物品的所有留言
     @GetMapping("/comments/{itemId}")
     public Result<List<BizLostFoundComment>> getComments(@PathVariable Long itemId) {
         return Result.success(commentService.listByItemId(itemId));
     }
 
-    /**
-     * 【超管特权】强制下架/作废失物招领信息
-     */
+    //强制下架失物招领信息
     @PostMapping("/cancel/{id}")
     public Result<Boolean> cancelItem(@PathVariable Long id) {
         BizLostFound item = lostFoundService.getById(id);
@@ -152,7 +132,6 @@ public class BizLostFoundController {
             item.setStatus(-1); 
             lostFoundService.updateById(item);
 
-            // 给发布者发送通知
             SysMessage msg = new SysMessage();
             msg.setReceiverId(item.getPublisherId()); 
             msg.setTitle("系统管理通知");
@@ -162,7 +141,6 @@ public class BizLostFoundController {
             msg.setCreateTime(java.time.LocalDateTime.now());
             messageMapper.insert(msg);
 
-            // 🌟 【风控埋点】记录超管下架操作
             SysLog log = new SysLog();
             log.setUsername("superadmin");
             log.setModule("失物招领");

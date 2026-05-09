@@ -16,7 +16,7 @@ public class SysMessageListener {
     @Autowired
     private SysMessageService messageService;
 
-    // @Async 注解至关重要，它让这个方法在一个全新的独立线程中执行，绝不卡顿主业务
+    //@Async注解让这个方法在一个全新的独立线程中执行，不卡主业务
     @Async
     @EventListener
     public void handleMessageEvent(SysMessageEvent event) {
@@ -31,6 +31,6 @@ public class SysMessageListener {
         message.setCreateTime(LocalDateTime.now());
         
         messageService.save(message);
-        System.out.println("【异步监听器执行完毕】站内信成功落盘！");
+        System.out.println("【异步监听器执行完毕】站内信成功落地");
     }
 }

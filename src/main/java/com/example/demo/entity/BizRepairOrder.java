@@ -17,7 +17,7 @@ public class BizRepairOrder {
     private String dormLocation;
     private String title;
     private String description;
-    private String images; // 暂时用 String 接收前端传来的 JSON 格式图片路径
+    private String images; 
     private Integer status; // 0-待接单, 1-维修中, 2-待评价, 3-已完成
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

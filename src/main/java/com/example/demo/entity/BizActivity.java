@@ -19,16 +19,16 @@ public class BizActivity {
     private String content;
     private String coverImage;
 
-    // 【新增】活动分类（学术讲座、文体演艺等）
+    //活动分类
     private String category;
     
-    // 【新增】活动名额上限
+    //活动名额上限
     private Integer capacity;
     
-    // 【新增】当前已报名人数（不映射到数据库表中，由后端动态统计）
+    //当前已报名人数
     @TableField(exist = false)
     private Integer currentEnrollment;
-    // 处理时间格式，方便前端展示
+    //处理时间格式
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime startTime;
 

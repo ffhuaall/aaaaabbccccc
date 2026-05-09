@@ -30,31 +30,31 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
      */
     @Override
     public List<BizActivity> recommendActivities(Long targetUserId, int topN) {
-        // 1. ⚡️ 核心修复：直接从【报名表】捞取所有有效的报名记录作为数据源！
+        //从报名表捞取所有有效的报名记录作为数据源
         QueryWrapper<BizActivityRegistration> wrapper = new QueryWrapper<>();
         wrapper.eq("status", 1); 
         List<BizActivityRegistration> allRegistrations = registrationMapper.selectList(wrapper);
 
-        // 2. 将报名记录转换为评分矩阵: Map<用户ID, Map<活动ID, 评分>>
+        //将报名记录转换为评分矩阵: Map<用户ID, Map<活动ID, 评分>>
         Map<Long, Map<Long, Double>> userItemMatrix = new HashMap<>();
         for (BizActivityRegistration reg : allRegistrations) {
-            // 只要报名了，我们就认为该用户对这个活动有极强的兴趣，直接记为 1.0 分
+            //只要报名了，我们就认为该用户对这个活动有极强的兴趣，记为 1.0 分
             userItemMatrix.computeIfAbsent(reg.getUserId(), k -> new HashMap<>())
                           .put(reg.getActivityId(), 1.0);
         }
 
         Map<Long, Double> targetUserItems = userItemMatrix.get(targetUserId);
         
-        // 3. 🌟 【冷启动 & 无数据兜底策略】
+        //冷启动
         if (targetUserItems == null || targetUserItems.isEmpty()) {
             System.out.println("【冷启动拦截】该用户无报名记录，执行基于热度的全局推荐策略");
-            // 降级策略：直接查出全站最新的/最热门的活动推荐给他
+            //降级策略：直接查出全站最新的/最热门的活动推荐给他
             QueryWrapper<BizActivity> hotWrapper = new QueryWrapper<>();
             hotWrapper.eq("status", 1).orderByDesc("id").last("LIMIT " + topN);
             return this.list(hotWrapper);
         }
 
-        // 4. 计算目标用户与其他用户的余弦相似度
+        //计算目标用户与其他用户的余弦相似度
         Map<Long, Double> userSimilarities = new HashMap<>();
         for (Map.Entry<Long, Map<Long, Double>> entry : userItemMatrix.entrySet()) {
             Long otherUserId = entry.getKey();
@@ -67,7 +67,7 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
             }
         }
 
-        // 5. 根据相似度给候选活动打分
+        //根据相似度给候选活动打分
         Map<Long, Double> candidateActivityScores = new HashMap<>();
         for (Map.Entry<Long, Double> simEntry : userSimilarities.entrySet()) {
             Long similarUserId = simEntry.getKey();
@@ -76,7 +76,7 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
             Map<Long, Double> similarUserItems = userItemMatrix.get(similarUserId);
             for (Map.Entry<Long, Double> itemEntry : similarUserItems.entrySet()) {
                 Long activityId = itemEntry.getKey();
-                // 核心过滤：只推荐目标用户没报名过的活动！
+                //核心过滤：只推荐目标用户没报名过的活动
                 if (!targetUserItems.containsKey(activityId)) {
                     double currentScore = candidateActivityScores.getOrDefault(activityId, 0.0);
                     candidateActivityScores.put(activityId, currentScore + (similarity * itemEntry.getValue()));
@@ -84,14 +84,14 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
             }
         }
 
-        // 6. 对候选活动按得分降序排序，取前 TopN 个
+        //对候选活动按得分降序排序，取前 TopN 个
         List<Long> recommendedActivityIds = candidateActivityScores.entrySet().stream()
                 .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
                 .limit(topN)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
-        // 7. 兜底返回与查询
+        //兜底返回与查询
         if (recommendedActivityIds.isEmpty()) {
             System.out.println("【算法兜底】没有算出合适的推荐，降级为全局推荐");
             QueryWrapper<BizActivity> hotWrapper = new QueryWrapper<>();
@@ -101,9 +101,7 @@ public class BizActivityServiceImpl extends ServiceImpl<BizActivityMapper, BizAc
         return this.listByIds(recommendedActivityIds);
     }
 
-    /**
-     * 计算两个用户评分向量的余弦相似度
-     */
+    //计算两个用户评分向量的余弦相似度
     private double calculateCosineSimilarity(Map<Long, Double> user1Items, Map<Long, Double> user2Items) {
         double dotProduct = 0.0;
         double norm1 = 0.0;

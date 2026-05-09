@@ -16,7 +16,7 @@ public class SysMessage {
     private String title;
     private String content;
     private Integer isRead; // 0未读 1已读
-    private String type; // REPAIR, ACTIVITY, SYSTEM
+    private String type;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;

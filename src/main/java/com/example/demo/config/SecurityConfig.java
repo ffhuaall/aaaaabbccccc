@@ -16,7 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // 【新增】注入我们自定义的 JWT 过滤器
+    //注入自定义的JWT过滤器
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -32,11 +32,11 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
             //.authorizeHttpRequests(auth -> auth
             //      .requestMatchers("/auth/login").permitAll() // 仅放行登录接口
-            //     // .requestMatchers("/activity/**").permitAll() // 【注释/删除这一行，开始保护活动接口】
+            //     // .requestMatchers("/activity/**").permitAll()
             //     // .requestMatchers("/classroom/**").permitAll()
             //     // .requestMatchers("/course/**").permitAll()
             //     // .requestMatchers("/dashboard/**").permitAll()
-            //     // .requestMatchers("/lost-found/**").permitAll() // 【新增】放行失物招领模块测试
+            //     // .requestMatchers("/lost-found/**").permitAll()
             //     // .requestMatchers("/repair/**").permitAll()
             //     // .requestMatchers("/message/**").permitAll()
             //     // .requestMatchers("/file/upload").permitAll()
@@ -45,7 +45,7 @@ public class SecurityConfig {
             //     // .anyRequest().authenticated()
             //);
 
-        // 【新增】将我们的 JWT 过滤器添加到 UsernamePasswordAuthenticationFilter 之前
+        //将JWT过滤器添加到UsernamePasswordAuthenticationFilter之前
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

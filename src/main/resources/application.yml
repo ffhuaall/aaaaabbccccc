@@ -9,7 +9,7 @@ spring:
     name: smart-campus-portal
 
   # ==========================================
-  # 数据库连接配置 (你的本地 MySQL 环境)
+  # 数据库连接配置
   # ==========================================
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -25,7 +25,6 @@ spring:
     redis:
       host: localhost
       port: 6379
-      # 如果你的 redis 没有密码，下面这行可以不写或者留空
       password: 
       database: 0
       lettuce:
@@ -40,14 +39,14 @@ spring:
 # ==========================================
 mybatis-plus:
   configuration:
-    # 开启驼峰命名自动映射 (例如数据库的 user_name 自动映射为 Java 的 userName)
+    # 开启驼峰命名自动映射
     map-underscore-to-camel-case: true
-    # 打印 SQL 日志，方便我们在开发阶段排查问题，写论文截图也用得上
+    # 打印 SQL 日志
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   
   global-config:
     db-config:
-      # 逻辑删除全局属性（可选配置，后续如果要用逻辑删除的话）
+      # 逻辑删除全局属性
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0

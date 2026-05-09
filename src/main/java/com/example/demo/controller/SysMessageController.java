@@ -16,16 +16,15 @@ public class SysMessageController {
     @Autowired
     private SysMessageMapper messageMapper;
 
-    // 获取我的所有消息
+    //获取我的所有消息
     @GetMapping("/list")
     public Result<List<SysMessage>> getMyMessages(@RequestParam Long userId) {
         QueryWrapper<SysMessage> wrapper = new QueryWrapper<>();
-        // 【关键修改】映射到 receiver_id
         wrapper.eq("receiver_id", userId).orderByDesc("create_time");
         return Result.success(messageMapper.selectList(wrapper));
     }
 
-    // 获取未读消息数量
+    //获取未读消息数量
     @GetMapping("/unread-count")
     public Result<Long> getUnreadCount(@RequestParam Long userId) {
         QueryWrapper<SysMessage> wrapper = new QueryWrapper<>();
@@ -33,7 +32,7 @@ public class SysMessageController {
         return Result.success(messageMapper.selectCount(wrapper));
     }
 
-    // 将单条消息标为已读
+    //将单条消息标为已读
     @PostMapping("/read/{id}")
     public Result<Boolean> readMessage(@PathVariable Long id) {
         SysMessage msg = messageMapper.selectById(id);
@@ -44,7 +43,7 @@ public class SysMessageController {
         return Result.success(true);
     }
     
-    // 一键已读所有
+    //一键已读所有
     @PostMapping("/read-all")
     public Result<Boolean> readAll(@RequestParam Long userId) {
         SysMessage msg = new SysMessage();

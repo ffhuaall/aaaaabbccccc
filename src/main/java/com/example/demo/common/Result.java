@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class Result<T> {
-    private Integer code; // 状态码：200表示成功，500表示失败等
+    private Integer code; // 状态码：200成功，500失败
     private String message; // 提示信息
     private T data; // 返回的具体数据
 

@@ -16,9 +16,7 @@ public class SysLogController {
     @Autowired
     private SysLogMapper logMapper;
 
-    /**
-     * 供超管大屏展示：拉取全站最新的 6 条敏感操作日志
-     */
+    //管理员大屏展示：拉取全站最新的 6 条敏感操作日志
     @GetMapping("/recent")
     public Result<List<SysLog>> getRecentLogs() {
         QueryWrapper<SysLog> wrapper = new QueryWrapper<>();

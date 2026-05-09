@@ -18,11 +18,10 @@ public class SysNoticeController {
     @Autowired
     private SysNoticeMapper noticeMapper;
 
-    // 【新增】注入日志 Mapper
     @Autowired
     private SysLogMapper logMapper;
 
-    // 超管：发布/修改公告
+    //管理员发布/修改公告
     @PostMapping("/save")
     public Result<Boolean> save(@RequestBody SysNotice notice) {
         boolean isNew = (notice.getId() == null);
@@ -38,9 +37,8 @@ public class SysNoticeController {
 
         if (isNew) {
             noticeMapper.insert(notice);
-            // 🌟 【风控埋点】记录发布公告操作
             SysLog log = new SysLog();
-            log.setUsername("superadmin"); // 实际可从Token提取
+            log.setUsername("superadmin");
             log.setModule("系统公告");
             log.setAction("发布公告");
             log.setType("info");
@@ -53,7 +51,7 @@ public class SysNoticeController {
         return Result.success(true);
     }
 
-    // 全员：获取当前正在发布的最新公告
+    //全员获取当前正在发布的最新公告
     @GetMapping("/latest")
     public Result<SysNotice> getLatest() {
         QueryWrapper<SysNotice> wrapper = new QueryWrapper<>();
@@ -61,7 +59,7 @@ public class SysNoticeController {
         return Result.success(noticeMapper.selectOne(wrapper));
     }
 
-    // 超管：获取所有历史公告列表
+    //管理员获取所有历史公告列表
     @GetMapping("/list")
     public Result<List<SysNotice>> list() {
         return Result.success(noticeMapper.selectList(new QueryWrapper<SysNotice>().orderByDesc("create_time")));

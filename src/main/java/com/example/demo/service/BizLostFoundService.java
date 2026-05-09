@@ -8,13 +8,9 @@ import java.util.List;
 
 public interface BizLostFoundService extends IService<BizLostFound> {
     
-    /**
-     * 发布失物招领（落盘 MySQL 并同步至 ES）
-     */
+    //发布失物招领，存MySQL并同步至ES
     boolean publishLostFound(BizLostFound lostFound);
 
-    /**
-     * 基于 ES 的关键字全文检索
-     */
+    //基于 ES 的关键字全文检索
     List<EsLostFound> searchLostFound(String keyword);
 }

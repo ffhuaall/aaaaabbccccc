@@ -5,8 +5,6 @@ import com.example.demo.entity.BizCourseSchedule;
 import java.util.List;
 
 public interface BizCourseScheduleService extends IService<BizCourseSchedule> {
-    /**
-     * 查询指定学生在指定周次的课表
-     */
+    //查询指定学生在指定周次的课表
     List<BizCourseSchedule> getWeeklyScheduleByClass(Long classId, Integer week);
 }

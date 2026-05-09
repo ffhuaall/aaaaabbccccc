@@ -24,7 +24,6 @@ public class BizClassroomController {
             @RequestParam(required = false) Integer dayOfWeek,
             @RequestParam(required = false) Integer period) {
 
-        // Controller 就像一个经理，把接到的参数直接丢给 Service 这个技术专家去处理
         List<BizClassroom> idleRooms = classroomService.getIdleClassrooms(campus, building, week, dayOfWeek, period);
         
         return Result.success(idleRooms);

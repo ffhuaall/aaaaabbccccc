@@ -31,25 +31,25 @@ public class AuthController {
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody LoginDTO loginDTO) {
-        // 1. 根据用户名查询用户
+        //根据用户名查询用户
         QueryWrapper<SysUser> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("username", loginDTO.getUsername());
         SysUser user = userService.getOne(queryWrapper);
 
-        // 2. 校验用户是否存在以及密码是否正确
+        //校验用户是否存在和密码是否正确
         if (user == null || !passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
             return Result.error(400, "用户名或密码错误");
         }
 
-        // 3. 判断账号状态是否被禁用
+        //判断账号是否禁用
         if (user.getStatus() == 0) {
             return Result.error(401, "账号已被禁用，请联系管理员");
         }
 
-        // 4. 生成 JWT Token
+        //生成JWT Token
         String token = jwtUtils.generateToken(user.getUsername(), user.getRoleId());
 
-        // 5. 封装返回数据
+        //封装返回数据
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
         data.put("id", user.getId());

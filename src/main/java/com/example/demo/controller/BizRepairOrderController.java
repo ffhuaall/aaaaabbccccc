@@ -21,13 +21,13 @@ public class BizRepairOrderController {
     @Autowired
     private com.example.demo.mapper.BizRepairEvaluationMapper evaluationMapper;
 
-    // 获取所有报修工单 (管理员看所有，学生前端已做过滤)
+    //获取所有报修工单
     @GetMapping("/list")
     public Result<List<BizRepairOrder>> getList() {
         return Result.success(repairOrderService.list());
     }
 
-    // 学生提交报修 (你之前可能写过，保持原样即可)
+    //学生提交报修
     @PostMapping("/submit")
     public Result<Boolean> submit(@RequestBody BizRepairOrder order) {
         order.setStatus(0); // 0-待接单
@@ -35,37 +35,33 @@ public class BizRepairOrderController {
         return Result.success(repairOrderService.save(order));
     }
 
-    /**
-     * 【新增】学生撤销报修单 (状态置为 -1)
-     */
+    //学生撤销报修单(状态为 -1)
     @PostMapping("/cancel/{id}")
     public Result<Boolean> cancelOrder(@PathVariable Long id) {
         BizRepairOrder order = repairOrderService.getById(id);
-        // 只有状态为 0 (待接单) 的才能撤销，如果师傅已经接单了就不能撤了
+        //只有状态为0的才能撤销，如果已经接单就不能撤了
         if (order != null && order.getStatus() == 0) {
-            order.setStatus(-1); // -1 代表已撤销
+            order.setStatus(-1); //已撤销
             repairOrderService.updateById(order);
             return Result.success(true);
         }
         return Result.error(400, "撤销失败，工单可能已被师傅接单处理");
     }
 
-    /**
-     * 【新增】学生提交评价
-     */
-   @PostMapping("/evaluate")
+    //学生提交评价
+    @PostMapping("/evaluate")
     public Result<Boolean> evaluateOrder(@RequestBody BizRepairEvaluation evaluation) {
         BizRepairOrder order = repairOrderService.getById(evaluation.getOrderId());
         if (order != null && order.getStatus() == 2) {
-            // 保存评价
+            //保存评价
             evaluation.setCreateTime(java.time.LocalDateTime.now());
             evaluationMapper.insert(evaluation);
             
-            // 更新工单状态为已完成
+            //更新工单状态为已完成
             order.setStatus(3);
             repairOrderService.updateById(order);
 
-            // 【新增】给当时接单的师傅发通知
+            //给当时接单的师傅发通知
             if (order.getWorkerId() != null) {
                 SysMessage msg = new SysMessage();
                 msg.setReceiverId(order.getWorkerId());
@@ -89,18 +85,16 @@ public class BizRepairOrderController {
         return Result.success(evaluationMapper.selectOne(wrapper));
     }
 
-    /**
-     * 【新增】管理员接单接口 (状态 0 -> 1)
-     */
+    //管理员接单接口(状态 0 -> 1)
     @PostMapping("/take/{id}")
     public Result<Boolean> takeOrder(@PathVariable Long id, @RequestParam Long workerId) {
         BizRepairOrder order = repairOrderService.getById(id);
         if (order != null && order.getStatus() == 0) {
-            order.setStatus(1); // 1-维修中
-            order.setWorkerId(workerId); // 【关键】绑定是哪位师傅接的单
+            order.setStatus(1); //1-维修中
+            order.setWorkerId(workerId); //绑定是哪位师傅接的单
             repairOrderService.updateById(order);
 
-            // 【新增】给学生发通知
+            //给学生发通知
             SysMessage msg = new SysMessage();
             msg.setReceiverId(order.getStudentId());
             msg.setTitle("报修进度更新");
@@ -115,9 +109,7 @@ public class BizRepairOrderController {
         return Result.error(400, "接单失败，该工单状态不正确");
     }
 
-    /**
-     * 【新增】管理员完工接口 (状态 1 -> 2)
-     */
+    //管理员完工接口 (状态 1 -> 2)
     @PostMapping("/finish/{id}")
     public Result<Boolean> finishOrder(@PathVariable Long id) {
         BizRepairOrder order = repairOrderService.getById(id);
@@ -129,15 +121,14 @@ public class BizRepairOrderController {
         return Result.error(400, "操作失败，该工单尚未开始维修");
     }
 
-    //删除工单 (用于清理测试数据或违规数据)
+    //删除工单
     @PostMapping("/delete/{id}")
     public Result<Boolean> deleteOrder(@PathVariable Long id) {
-        // 只有超管权限建议在前端控制，后端也可以根据角色校验
         return Result.success(repairOrderService.removeById(id));
     }
 
     /**
-     * 【超管特权】人工指派工单
+     *派单
      * @param orderId 工单ID
      * @param workerId 维修人员用户ID
      */
@@ -146,10 +137,10 @@ public class BizRepairOrderController {
         BizRepairOrder order = repairOrderService.getById(orderId);
         if (order != null) {
             order.setWorkerId(workerId);
-            order.setStatus(1); // 强制变更为维修中
+            order.setStatus(1); //强制变更为维修中
             repairOrderService.updateById(order);
 
-            // [同步发送通知给工人]
+            //通知师傅
             SysMessage msg = new SysMessage();
             msg.setReceiverId(workerId);
             msg.setTitle("管理员指派工单");

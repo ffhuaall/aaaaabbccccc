@@ -12,7 +12,6 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface BizActivityMapper extends BaseMapper<BizActivity> {
-    // 继承了 BaseMapper，MyBatis-Plus 自动帮我们实现了基本的增删改查，无需写 XML
     @Select("SELECT user_id, activity_id, SUM(score) as score FROM (" +
             "  SELECT user_id, activity_id, 2 as score FROM biz_activity_registration " +
             "  UNION ALL " +

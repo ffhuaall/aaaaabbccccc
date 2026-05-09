@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Service
 public class BizRepairOrderServiceImpl extends ServiceImpl<BizRepairOrderMapper, BizRepairOrder> implements BizRepairOrderService {
 
-    // 【新增】注入事件发布器
+    //注入事件发布器
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
@@ -34,7 +34,7 @@ public class BizRepairOrderServiceImpl extends ServiceImpl<BizRepairOrderMapper,
             order.setWorkerId(workerId);
             boolean success = this.updateById(order);
             
-            // 【新增】业务流转成功后，异步发布消息事件通知发起报修的学生
+            //业务流转成功后，异步发布消息事件通知发起报修的学生
             if (success) {
                 String content = "您的报修工单【" + order.getTitle() + "】已被受理，后勤小哥正火速赶往现场！";
                 eventPublisher.publishEvent(new SysMessageEvent(this, order.getStudentId(), "报修已受理", content, "REPAIR"));
@@ -51,7 +51,7 @@ public class BizRepairOrderServiceImpl extends ServiceImpl<BizRepairOrderMapper,
             order.setStatus(2); 
             boolean success = this.updateById(order);
             
-            // 【新增】业务流转成功后，异步发布消息事件邀请学生评价
+            //业务流转成功后，异步发布消息事件邀请学生评价
             if (success) {
                 String content = "您的报修工单【" + order.getTitle() + "】已维修完毕。请前往门户确认验收并为小哥打个五星好评吧！";
                 eventPublisher.publishEvent(new SysMessageEvent(this, order.getStudentId(), "报修待评价", content, "REPAIR"));
