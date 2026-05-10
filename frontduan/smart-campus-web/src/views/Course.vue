@@ -2,7 +2,7 @@
   <div class="course-page">
     <el-card shadow="never" class="course-card">
       <div class="control-header">
-        <h2 class="title">🎓 我的专属课表</h2>
+        <h2 class="title">🎓 我的课表</h2>
         <div class="week-selector">
           <el-button circle icon="ArrowLeft" @click="changeWeek(-1)" :disabled="currentWeek <= 1" />
           <span class="week-text">第 {{ currentWeek }} 周</span>
@@ -59,7 +59,7 @@ const loading = ref(false)
 const currentWeek = ref(1) // 默认展示第1周
 const courseList = ref([])
 
-// 获取当前登录用户ID
+//获取当前登录用户ID
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
 const studentId = userInfo.id || 1001
 
@@ -72,14 +72,14 @@ const periods = [
   { name: '第五大节', time: '19:00 - 20:40' }
 ]
 
-// 【核心算法】将一维数组转换为 5行 x 7列 的二维矩阵
+//将一维数组转换为5x7的二维矩阵
 const scheduleMatrix = computed(() => {
-  // 初始化一个 5 x 7 的 null 矩阵
+  //初始化矩阵
   const matrix = Array.from({ length: 5 }, () => Array(7).fill(null))
   
   courseList.value.forEach(course => {
-    // period 是 1-5，对应数组下标 0-4
-    // dayOfWeek 是 1-7，对应数组下标 0-6
+    //period是1-5，对应数组下标0-4
+    //dayOfWeek是1-7，对应数组下标0-6
     const rowIndex = course.period - 1
     const colIndex = course.dayOfWeek - 1
     matrix[rowIndex][colIndex] = course
@@ -88,20 +88,20 @@ const scheduleMatrix = computed(() => {
   return matrix
 })
 
-// 为不同的课程动态分配糖果色背景（根据课程名长度算个伪随机哈希）
+//为不同的课程动态分配背景
 const getColorClass = (courseName) => {
   const colors = ['color-1', 'color-2', 'color-3', 'color-4', 'color-5']
   const index = courseName.length % colors.length
   return colors[index]
 }
 
-// 切换周次
+//切换周次
 const changeWeek = (step) => {
   currentWeek.value += step
   fetchSchedule()
 }
 
-// 请求后端获取指定周次的课表
+//请求后端获取指定周次的课表
 const fetchSchedule = async () => {
   loading.value = true
   try {
@@ -241,14 +241,14 @@ onMounted(() => {
 
 .c-location, .c-teacher {
   font-size: 12px;
-  margin-top: auto; /* 把这俩挤到底部 */
+  margin-top: auto; 
   display: flex;
   align-items: center;
   gap: 4px;
   opacity: 0.9;
 }
 
-/* 糖果色背景 */
+/* 背景 */
 .color-1 { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); } /* 粉色 */
 .color-2 { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); } /* 紫色 */
 .color-3 { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); } /* 青蓝 */

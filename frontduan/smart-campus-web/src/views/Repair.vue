@@ -117,7 +117,7 @@
           v-model="evaluateForm.comment" 
           type="textarea" 
           :rows="3" 
-          placeholder="写点评价吧，比如：师傅手艺真不错，空调冻得我直打哆嗦！" 
+          placeholder="写点评价吧，比如：师傅手艺真不错！" 
           style="margin-top: 20px;" 
         />
       </div>
@@ -148,7 +148,6 @@ const uploadHeaders = {
   token: localStorage.getItem('Authorization') 
 }
 
-// 【新增】定义全校标准的校区与宿舍楼字典
 const dormOptions = [
   {
     value: '东校区',
@@ -179,16 +178,16 @@ const dormOptions = [
   }
 ]
 
-// 【修改】拆分表单字段，将 dormLocation 拆为 building 和 room
+//拆分表单字段
 const repairForm = reactive({
   studentId: currentUserId,
   title: '',
-  building: [], // 接收数组格式，如：['南校区', '3舍']
-  room: '',     // 房间号
+  building: [], //接收数组格式，如：['南校区', '3舍']
+  room: '',     //房间号
   description: ''
 })
 
-// 【修改】对应的必填校验规则更新
+//更新对应的必填校验规则
 const rules = {
   title: [{ required: true, message: '请输入报修标题', trigger: 'blur' }],
   building: [{ required: true, message: '请选择校区和楼栋', trigger: 'change' }],
@@ -225,20 +224,20 @@ const submitRepair = () => {
       try {
         const imagesToSubmit = fileList.value.map(file => file.url || file.response.data)
         
-        // 【核心】在这里进行数据的重组与拼接
-        // 将前端两个组件的值拼成后端需要的标准字符串，例如："南校区-3舍-401室"
+        //进行数据的重组与拼接
+        //将前端两个组件的值拼成后端需要的标准字符串(南校区-3舍-401室)
         const standardLocation = `${repairForm.building[0]}-${repairForm.building[1]}-${repairForm.room}室`
 
         const submitData = {
           studentId: repairForm.studentId,
           title: repairForm.title,
-          dormLocation: standardLocation, // 把拼接好的字符串传给后端
+          dormLocation: standardLocation, //把字符串传给后端
           description: repairForm.description,
           images: JSON.stringify(imagesToSubmit) 
         }
         
         await request.post('/repair/submit', submitData)
-        ElMessage.success('报单提交成功，后勤大叔正火速赶来！')
+        ElMessage.success('报单提交成功，维修大爷正火速赶来！')
         
         repairFormRef.value.resetFields()
         fileList.value = [] 

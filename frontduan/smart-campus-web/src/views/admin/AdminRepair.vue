@@ -154,7 +154,6 @@ const loading = ref(false)
 const allOrders = ref([])
 const activeTab = ref('pool') 
 
-// 【重构】使用数组来接收级联选择器的值
 const searchLocation = ref([])   
 
 const detailVisible = ref(false)
@@ -164,7 +163,7 @@ const evaluationData = ref(null)
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
 const currentWorkerId = userInfo.id || 2001
 
-// 引入与学生端一致的校区/楼栋字典
+//引入与学生端一致的校区/楼栋字典
 const dormOptions = [
   {
     value: '东校区', label: '东校区',
@@ -198,17 +197,16 @@ const fetchAllOrders = async () => {
   }
 }
 
-// ================== 核心：结构化区域过滤逻辑 ==================
 const matchLocation = (order) => {
-  // 如果没有选择任何过滤条件，默认显示全部
+  //如果没有选择任何过滤条件，显示全部
   if (!searchLocation.value || searchLocation.value.length === 0) return true
   if (!order.dormLocation) return false
 
   const campus = searchLocation.value[0]
   const building = searchLocation.value[1] 
 
-  // 如果师傅只选了校区（如：南校区），就匹配所有以"南校区"开头的单子
-  // 如果师傅选了楼栋（如：南校区 -> 3舍），就精确匹配"南校区-3舍"
+  //如果师傅只选了校区（如：南校区），就匹配所有以"南校区"开头的单子
+  //如果师傅选了楼栋（如：南校区 -> 3舍），就精确匹配"南校区-3舍"
   if (building) {
     return order.dormLocation.startsWith(`${campus}-${building}`)
   } else {
@@ -227,18 +225,17 @@ const filteredTodo = computed(() => {
 const filteredDone = computed(() => {
   return allOrders.value.filter(item => item.status === 3 && item.workerId === currentWorkerId && matchLocation(item))
 })
-// ===================================================================
 
-// 【新增】纯前端 CSV 导出功能
+//CSV导出功能
 const exportToCSV = () => {
   if (filteredDone.value.length === 0) return
   
-  // 1. 构建 CSV 表头
+  //构建 CSV 表头
   let csvContent = "工单编号,报修位置,故障简述,提交时间,完成状态\n"
   
-  // 2. 遍历数据并转为 CSV 行格式
+  //遍历数据并转为 CSV 行格式
   filteredDone.value.forEach(order => {
-    // 遇到描述里有逗号的，需要用双引号包起来，防止 CSV 错位
+    //遇到描述里有逗号的需要用双引号包起来，防止 CSV 错位
     const safeTitle = `"${order.title.replace(/"/g, '""')}"`
     const row = [
       order.id,
@@ -250,12 +247,12 @@ const exportToCSV = () => {
     csvContent += row + "\n"
   })
   
-  // 3. 生成 Blob 对象并利用浏览器下载机制触发下载 (\uFEFF 解决 Excel 中文乱码)
+  //生成Blob对象并利用浏览器下载机制触发下载
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")
   link.setAttribute("href", url)
-  // 文件名带上当前时间戳
+  //文件名带上当前时间戳
   link.setAttribute("download", `已完成维修工单_${new Date().getTime()}.csv`)
   document.body.appendChild(link)
   link.click()

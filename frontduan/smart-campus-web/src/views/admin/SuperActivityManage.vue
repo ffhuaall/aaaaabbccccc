@@ -1,7 +1,7 @@
 <template>
   <div class="super-activity-page">
     
-    <!-- ================= 全局数据大盘 ================= -->
+    <!-- 系统管理员数据总览 -->
     <el-row :gutter="20" class="stat-row">
       <el-col :span="8">
         <el-card shadow="hover" class="stat-card bg-purple">
@@ -38,7 +38,7 @@
       </el-col>
     </el-row>
 
-    <!-- ================= 全局审计工作台 ================= -->
+    <!-- 系统管理员工作台 -->
     <el-card shadow="never" class="list-card">
       <template #header>
         <div class="card-header">
@@ -73,7 +73,7 @@
         </div>
       </template>
 
-      <!-- 上帝视角数据表格 -->
+      <!-- 数据表格 -->
       <el-table :data="displayActivities" style="width: 100%" v-loading="loading" stripe border size="small">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column label="海报" width="80" align="center">
@@ -92,7 +92,7 @@
         <el-table-column prop="title" label="活动名称" min-width="160" show-overflow-tooltip />
         <el-table-column prop="category" label="分类" width="90" align="center" />
         
-        <!-- 【超管特供】直观暴露是谁发布的活动，方便追责 -->
+        <!-- 显示活动发布者 -->
         <el-table-column prop="publisherId" label="发布者ID" width="90" align="center">
           <template #default="scope">
             <el-tag type="warning" size="small" effect="plain">{{ scope.row.publisherId }}</el-tag>
@@ -143,7 +143,7 @@
       </el-table>
     </el-card>
 
-    <!-- ================= 审计详情预览 ================= -->
+    <!-- 活动详情 -->
     <el-dialog v-model="detailVisible" title="活动全案详情" width="600px" destroy-on-close :lock-scroll="false">
       <div v-if="previewActivity" class="audit-detail">
         <div class="poster-preview">
@@ -164,7 +164,7 @@
       </div>
     </el-dialog>
 
-    <!-- ================= 全局名单抽查 ================= -->
+    <!-- 活动名单 -->
     <el-dialog v-model="participantsVisible" :title="`【${selectedActivity?.title}】全局报名名单`" width="700px" destroy-on-close>
       <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 14px; color: #606266;">
@@ -210,17 +210,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const loading = ref(false)
 const allActivities = ref([])
 
-// 搜索过滤器
 const filter = reactive({ keyword: '', category: '', status: null })
 
-// 【超管特权】无需过滤 publisherId，直接在全部数据上做检索过滤
 const displayActivities = computed(() => {
   return allActivities.value.filter(item => {
     if (typeof filter.status === 'number' && item.status !== filter.status) return false
     if (filter.category && item.category !== filter.category) return false
     if (filter.keyword) {
       const kw = filter.keyword.toLowerCase()
-      // 超管不仅能搜标题，还能直接搜发布者 ID
       if (!item.title.toLowerCase().includes(kw) && !String(item.publisherId).includes(kw)) {
         return false
       }
@@ -229,13 +226,12 @@ const displayActivities = computed(() => {
   })
 })
 
-// 全局统计大屏数据
 const ongoingCount = computed(() => allActivities.value.filter(i => i.status === 1).length)
 const totalParticipants = computed(() => {
   return allActivities.value.reduce((sum, item) => sum + (item.currentEnrollment || 0), 0)
 })
 
-// ================== 列表数据与操作 ==================
+//列表数据与操作
 const fetchList = async () => {
   loading.value = true
   try {
@@ -249,12 +245,12 @@ const getPercentage = (item) => {
   return Math.min(Math.floor(((item.currentEnrollment || 0) / item.capacity) * 100), 100)
 }
 
-// 审查详情
+//详情
 const detailVisible = ref(false)
 const previewActivity = ref(null)
 const showAdminDetails = (row) => { previewActivity.value = row; detailVisible.value = true; }
 
-// 【风控操作】强制停止
+//强制停止
 const forceStopActivity = (id) => {
   ElMessageBox.confirm('【超管权限】确定要强制提前结束该活动的报名吗？', '风控干预', { type: 'warning' }).then(async () => {
     await request.post(`/activity/stop/${id}`)
@@ -263,7 +259,7 @@ const forceStopActivity = (id) => {
   }).catch(() => {})
 }
 
-// 【风控操作】强制物理删除
+//强制删除
 const forceDeleteActivity = (id) => {
   ElMessageBox.confirm('【危险】此操作将从数据库中彻底抹除该活动及其所有报名记录，确认执行？', '最高权限干预', { type: 'error' }).then(async () => {
     try {
@@ -276,7 +272,7 @@ const forceDeleteActivity = (id) => {
   }).catch(() => {})
 }
 
-// ================== 全局名单审查 ==================
+//人数名单
 const participantsVisible = ref(false)
 const participantList = ref([])
 const selectedActivity = ref(null)
@@ -295,7 +291,7 @@ const viewParticipants = async (row) => {
 const forceAuditUser = async (regId) => {
   ElMessageBox.confirm('【超管权限】强制取消该名学生的参与资格？', '操作确认', { type: 'warning' }).then(async () => {
     await request.post(`/activity/audit-participant?regId=${regId}&status=0`)
-    ElMessage.success('已强行褫夺该生资格')
+    ElMessage.success('已取消该生资格')
     viewParticipants(selectedActivity.value)
     fetchList() 
   }).catch(() => {})
@@ -319,7 +315,6 @@ onMounted(fetchList)
 <style scoped>
 .super-activity-page { padding-bottom: 20px; }
 
-/* 顶级风控统计卡片样式 */
 .stat-row { margin-bottom: 20px; }
 .stat-card { border-radius: 12px; border: none; color: white; }
 .bg-purple { background: linear-gradient(135deg, #9c27b0 0%, #b388ff 100%); }

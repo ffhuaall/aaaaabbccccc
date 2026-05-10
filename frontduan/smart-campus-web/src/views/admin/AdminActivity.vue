@@ -195,7 +195,7 @@ import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-// 【强化修正】强制转换为 Number 类型，防止与后端的 Long 类型匹配失败
+
 const currentUserId = Number(userInfo.id) || 1001 
 const uploadHeaders = { token: localStorage.getItem('Authorization') }
 
@@ -204,14 +204,11 @@ const allActivities = ref([])
 
 const filter = reactive({ keyword: '', status: null })
 
-// ================== 核心数据隔离 ==================
-// 负责人大盘：底层数据源绝对隔离，只允许看自己的数据
+
 const myActivities = computed(() => allActivities.value.filter(i => i.publisherId === currentUserId))
 
-// 智能过滤后的展示数据
 const displayActivities = computed(() => {
   return myActivities.value.filter(item => {
-    // 【Bug 修复】严谨判断数字类型，解决下拉框点叉变成 undefined 导致清空失效的问题
     if (typeof filter.status === 'number' && item.status !== filter.status) return false
     if (filter.keyword && !item.title.includes(filter.keyword)) return false
     return true
@@ -223,7 +220,6 @@ const totalParticipants = computed(() => {
   return myActivities.value.reduce((sum, item) => sum + (item.currentEnrollment || 0), 0)
 })
 
-// ================== 原有业务逻辑 ==================
 const detailVisible = ref(false)
 const previewActivity = ref(null)
 const showAdminDetails = (row) => { previewActivity.value = row; detailVisible.value = true; }
@@ -313,7 +309,6 @@ onMounted(fetchList)
 <style scoped>
 .admin-activity-page { padding-bottom: 20px; }
 
-/* 统计卡片样式 */
 .stat-row { margin-bottom: 20px; }
 .stat-card { border-radius: 12px; border: none; color: white; }
 .bg-blue { background: linear-gradient(135deg, #409EFF 0%, #53a8ff 100%); }

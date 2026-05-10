@@ -272,14 +272,13 @@ const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
 const userRole = computed(() => Number(userInfo.roleId) || 1) 
 const currentDate = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
-// 所有核心统计数据
+//所有核心统计数据
 const stats = reactive({
   users: 0, allActivities: 0, lostfounds: 0, repairs: 0,
   myActivities: 0, myOngoing: 0, myParticipants: 0,
   workerPending: 0, workerProcessing: 0, workerFinished: 0
 })
 
-// 移除原有的假数据，全部变为响应式空数组准备承接后端真实数据
 const recentActivities = ref([])
 const adminMyActs = ref([])
 const workerPendingList = ref([])
@@ -287,7 +286,7 @@ const studentSchedule = ref([])
 const systemNotices = ref([])
 const superLogs = ref([])
 
-// 本地记事本工具 (不存库，仅作前端交互展示)
+//本地记事本工具
 const superTodo = ref([])
 const adminTodo = ref([])
 const workerTodo = ref([])
@@ -303,17 +302,17 @@ const getPercentage = (item) => {
 
 const fetchRoleData = async () => {
   try {
-    // 1. 全局：拉取系统公告 (学生和负责人界面需要展示)
+    //拉取系统公告(学生和负责人界面需要展示)
     request.get('/notice/list').then(res => {
       if (res && res.length > 0) {
         systemNotices.value = res.filter(item => item.isActive === 1).map(item => ({
           title: item.title,
           type: item.level || 'info'
-        })).slice(0, 4) // 只取最新的 4 条激活公告
+        })).slice(0, 4) //只取最新的 4 条激活公告
       }
     }).catch(()=>{})
 
-    // 2. 全局：拉取真实的活动数据
+    //拉取真实的活动数据
     const actRes = await request.get('/activity/list')
     if (actRes) {
       recentActivities.value = [...actRes].sort((a, b) => new Date(b.createTime) - new Date(a.createTime)).slice(0, 5)
@@ -326,7 +325,7 @@ const fetchRoleData = async () => {
       stats.myParticipants = myActs.reduce((sum, item) => sum + (item.currentEnrollment || 0), 0)
     }
 
-    // ================= 超管专属逻辑 =================
+    //操作日志
     if (userRole.value === 4) {
       // 拉取真实的系统风控日志
       request.get('/log/recent').then(res => {
@@ -341,24 +340,23 @@ const fetchRoleData = async () => {
         }
       }).catch(()=>{})
 
-      // 拉取真实的其余全站统计数据
+      //拉取全站统计数据
       request.get('/user/list').then(res => { if(res) stats.users = res.length }).catch(()=>{})
       request.get('/lost-found/list').then(res => { if(res) stats.lostfounds = res.length }).catch(()=>{})
       request.get('/repair/list').then(res => { if(res) stats.repairs = res.length }).catch(()=>{})
     }
 
-    // ================= 维修工专属逻辑 =================
+    //维修人员逻辑
     if (userRole.value === 2) {
-      // 拉取真实的工单列表
+      //拉取工单列表
       request.get('/repair/list').then(res => {
         if (res && res.length > 0) {
-          // 提取待处理工单 (假设 status: 0 是待处理)
+          //提取待处理工单
           const pending = res.filter(item => item.status === 0)
           stats.workerPending = pending.length
           stats.workerProcessing = res.filter(item => item.status === 1).length
           stats.workerFinished = res.filter(item => item.status === 2 || item.status === 3).length
 
-          // 填充最新的紧急待办表格
           workerPendingList.value = pending.map(item => ({
             location: item.dormLocation || '未填写地址',
             title: item.title || item.description,
@@ -368,14 +366,13 @@ const fetchRoleData = async () => {
       }).catch(()=>{})
     }
 
-    // ================= 学生专属逻辑 =================
+    //学生逻辑
     if (userRole.value === 1) {
-          // 获取当前学生的 ID，如果没有则默认用测试账号的 1001
+          //获取当前学生的 ID
           const studentId = userInfo.id || 1001
-          // 假设当前是第 5 周 (你可以根据实际情况改成动态计算)
+          //假设当前是第 5 周 (你可以根据实际情况改成动态计算)
           const currentWeek = 5 
-    
-          // ⚠️ 修复点：调用真实的 /course/weekly 接口，并带上必须的参数
+
           request.get(`/course/weekly?studentId=${studentId}&week=${currentWeek}`).then(res => {
             if (res && res.length > 0) {
               studentSchedule.value = res.map(item => ({

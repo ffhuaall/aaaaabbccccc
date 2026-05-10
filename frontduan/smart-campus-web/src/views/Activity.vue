@@ -29,7 +29,7 @@
           <div class="section-header">
             <span class="emoji">✨</span>
             <h3 class="title">猜你喜欢</h3>
-            <span class="subtitle">基于协同过滤算法为您精准推荐</span>
+            <span class="subtitle">*基于协同过滤算法为您推荐</span>
           </div>
           <div class="items-grid recommend-grid">
             <el-card v-for="item in recommendList" :key="item.id" class="activity-card recommend-card" @click="showDetails(item)">
@@ -167,7 +167,7 @@ const filter = reactive({ keyword: '', category: '' })
 
 const allList = ref([])
 const recommendList = ref([])
-const registeredIds = ref([]) // 存放当前用户已报名的活动ID
+const registeredIds = ref([]) //存放当前用户已报名的活动ID
 
 const detailVisible = ref(false)
 const selectedItem = ref(null)
@@ -175,16 +175,15 @@ const selectedItem = ref(null)
 const fetchList = async () => {
   loading.value = true
   try {
-    // 1. 获取活动大厅的全量列表
+    //获取活动大厅的全量列表
     const res = await request.get('/activity/list')
     allList.value = res || []
     
-    // 2. ⚡️ 核心修复：干掉 slice 模拟，调用真实的协同过滤算法接口！
-    // 把当前登录人的 userId 传给后端，索要 3 个推荐位
+    //把当前登录人的userId给后端，要3个推荐位
     const recRes = await request.get(`/activity/recommend?userId=${currentUserId}&topN=3`)
     recommendList.value = recRes || [] 
 
-    // 3. 获取当前用户已报名的活动ID列表
+    //获取当前用户已报名的活动ID列表
     const myRes = await request.get(`/activity/my-registered?userId=${currentUserId}`)
     registeredIds.value = myRes || []
   } catch (e) { 
@@ -249,7 +248,7 @@ const handleEnroll = async () => {
     detailVisible.value = false
     fetchList()
   } catch (e) {
-    // 取消操作
+    //取消操作
   }
 }
 
@@ -279,16 +278,16 @@ onMounted(fetchList)
 .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 .recommend-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 
-/* 活动卡片基础 */
+/* 活动卡片 */
 .activity-card { cursor: pointer; border-radius: 12px; overflow: hidden; transition: all 0.3s; border: 1px solid #ebeef5; display: flex; flex-direction: column; }
 .activity-card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
 
-/* 猜你喜欢专属 */
+/* 猜你喜欢 */
 .recommend-card { background: linear-gradient(135deg, #fffaf0 0%, #fff0f0 100%); position: relative; border: none; }
 .tag-box { position: absolute; top: 12px; right: 12px; }
 .card-content { padding: 20px; }
 
-/* 海报占位符区 */
+/* 海报占位符 */
 .poster-box { height: 140px; display: flex; align-items: center; justify-content: center; position: relative; color: white; font-size: 20px; font-weight: bold; letter-spacing: 2px; overflow: hidden; }
 .poster-img { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 0; }
 .poster-text { z-index: 1; }
@@ -301,13 +300,13 @@ onMounted(fetchList)
 
 .status-badge { position: absolute; top: 10px; left: 10px; z-index: 2; }
 
-/* 卡片信息区 */
+/* 卡片信息 */
 .act-info { padding: 15px; flex: 1; display: flex; flex-direction: column; }
 .act-title { margin: 0 0 12px; font-size: 16px; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .act-desc { font-size: 13px; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 15px; }
 .act-meta-list p { margin: 0 0 6px 0; font-size: 13px; color: #909399; display: flex; align-items: center; gap: 5px; }
 
-/* 进度条区块 */
+/* 进度条 */
 .quota-box { margin-top: auto; padding-top: 12px; border-top: 1px dashed #ebeef5; }
 .quota-text { display: flex; justify-content: space-between; font-size: 12px; color: #909399; margin-bottom: 6px; }
 .full-text { color: #F56C6C; font-weight: bold; }

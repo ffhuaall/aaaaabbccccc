@@ -139,7 +139,6 @@ const toggleStatus = async (row) => {
 
 const handleDelete = (id) => {
   ElMessageBox.confirm('确定要删除这条公告记录吗？', '提示', { type: 'warning' }).then(async () => {
-    // 假设后端支持根据 ID 删除
     await request.post(`/notice/delete/${id}`)
     ElMessage.success('删除成功')
     fetchNotices()

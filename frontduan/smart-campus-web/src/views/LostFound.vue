@@ -197,23 +197,21 @@ const fetchList = async () => {
   } finally { loading.value = false }
 }
 
-// ================== 核心改进：上帝视角的五维过滤逻辑 ==================
 const filteredList = computed(() => {
   return allItems.value.filter(i => {
-    // 1. “已完成”专区逻辑：同时包含 已结案(1) 和 已作废(-1) 的个人物品
+    //已完成
     if (activeTab.value === 'finished') {
       return (i.status === 1 || i.status === -1) && i.publisherId === currentUserId;
     }
 
-    // 2. 公共展示区逻辑：坚决不显示已结案(1)和已作废(-1)的物品
     if (i.status === 1 || i.status === -1) return false;
 
-    // 3. 标签分类导航
+    //标签分类导航
     if (activeTab.value === 'lost' && i.type !== 0) return false;
     if (activeTab.value === 'found' && i.type !== 1) return false;
     if (activeTab.value === 'my' && i.publisherId !== currentUserId) return false;
     
-    // 4. 搜索与类别过滤
+    //搜索与类别过滤
     if (filter.category && !i.itemName.includes(`[${filter.category}]`)) return false;
     if (filter.keyword && !i.itemName.includes(filter.keyword)) return false;
     
@@ -281,7 +279,7 @@ onMounted(fetchList)
 .item-img-box { position: relative; flex: 0 0 170px; background-color: #f9f9f9; }
 .item-img-box .el-image { width: 100%; height: 100%; }
 
-/* 占位符设计 */
+/*占位符*/
 .placeholder-box { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
 .p-lost { background: linear-gradient(135deg, #FF9A9E 0%, #FAD0C4 100%); }
 .p-found { background: linear-gradient(135deg, #84FAB0 0%, #8FD3F4 100%); }

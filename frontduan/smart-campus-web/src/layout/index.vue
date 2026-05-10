@@ -8,7 +8,7 @@
         :router="true"
         :collapse="true"
       >
-        <!-- 全局统一的首页入口（动态渲染内容） -->
+        <!-- 全局统一首页入口 -->
         <el-menu-item index="/dashboard">
           <el-icon><Odometer /></el-icon>
           <template #title>系统控制台</template>
@@ -38,7 +38,7 @@
           </el-menu-item>
         </template>
 
-        <!-- 后勤管理员视图 -->
+        <!-- 维修师傅视图 -->
         <template v-if="userInfo.roleId === 2">
           <el-menu-item index="/admin/repair">
             <el-icon><Tools /></el-icon>
@@ -46,7 +46,7 @@
           </el-menu-item>
         </template>	
 
-        <!-- 部门活动负责人视图 -->
+        <!-- 部门负责人视图 -->
         <template v-if="userInfo.roleId === 3">
           <el-menu-item index="/admin/activity">
             <el-icon><Collection /></el-icon>
@@ -58,7 +58,7 @@
           </el-menu-item>
         </template>
 
-        <!-- 超级管理员视图 -->
+        <!-- 系统管理员视图 -->
         <template v-if="userInfo.roleId === 4">
           <el-menu-item index="/admin/user">
             <el-icon><UserFilled /></el-icon>
@@ -87,7 +87,6 @@
       </div>
     </div>
 
-    <!-- 中间主体区域和消息抽屉保持不变... -->
     <div class="main-container">
       <el-alert
         v-if="latestNotice"

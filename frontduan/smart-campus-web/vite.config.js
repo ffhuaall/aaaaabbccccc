@@ -11,10 +11,10 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173, // 前端项目启动端口
+    port: 5173, //前端项目启动端口
     proxy: {
       '/api': {
-        target: 'http://localhost:8080', // 你 Spring Boot 后端的地址
+        target: 'http://localhost:8080', //后端的地址
         changeOrigin: true, // 开启跨域
         // 重写路径：把前端请求的 '/api/auth/login' 转换成后端的 '/auth/login'
         rewrite: (path) => path.replace(/^\/api/, '') 

@@ -168,7 +168,6 @@ const fetchAll = async () => {
       data = data.filter(i => i.status === filter.status)
     }
 
-    // 【核心修复】倒序排列，保证单号 100 永远在 1 前面
     allOrders.value = data.sort((a, b) => b.id - a.id)
     
     // 审计评分数据

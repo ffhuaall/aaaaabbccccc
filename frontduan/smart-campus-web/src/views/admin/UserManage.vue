@@ -132,13 +132,13 @@ const form = reactive({
   roleId: 1
 })
 
-// 角色标识映射
+//角色标识映射
 const getRoleConfig = (roleId) => {
   const map = {
     1: { text: '👨‍🎓 学生', type: 'info' },
-    2: { text: '👷‍♂️ 维修工', type: 'primary' },
-    3: { text: '👨‍🏫 社团主管', type: 'success' },
-    4: { text: '👑 超级管理员', type: 'danger' }
+    2: { text: '👷‍♂️ 维修人员', type: 'primary' },
+    3: { text: '👨‍🏫 部门负责人', type: 'success' },
+    4: { text: '👑 系统管理员', type: 'danger' }
   }
   return map[roleId] || { text: '未知身份', type: 'info' }
 }
@@ -146,7 +146,6 @@ const getRoleConfig = (roleId) => {
 const fetchUsers = async () => {
   loading.value = true
   try {
-    // [修改] 接口请求带上 roleId
     const res = await request.get(`/user/list?keyword=${searchKeyword.value}&roleId=${searchRoleId.value || ''}`)
     userList.value = res || []
   } finally {
@@ -154,17 +153,17 @@ const fetchUsers = async () => {
   }
 }
 
-// 动态修改账号封禁状态
+//动态修改账号封禁状态
 const handleStatusChange = async (id, status) => {
   try {
     await request.post(`/user/status?id=${id}&status=${status}`)
     ElMessage.success(status === 1 ? '账号已解封！' : '账号已拉黑禁止登录！')
   } catch (error) {
-    fetchUsers() // 如果接口失败，把 Switch 开关拨回原样
+    fetchUsers() //如果接口失败把Switch开关拨回原样
   }
 }
 
-// 重置密码
+//重置密码
 const handleResetPwd = (id) => {
   ElMessageBox.confirm('确定要将该账号的密码重置为默认的 123456 吗？', '高危操作', { type: 'warning' }).then(async () => {
     await request.post(`/user/reset-pwd/${id}`)

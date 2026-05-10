@@ -98,14 +98,14 @@ const loading = ref(false)
 const hasSearched = ref(false)
 const idleRooms = ref([])
 
-// 1. 定义校区与教学楼的映射关系
+//定义校区与教学楼的映射关系
 const buildingMap = {
   '东校区': ['第一教学楼', '第二教学楼'],
   '南校区': ['第三教学楼'],
   '西校区': ['第四教学楼', '实验大楼']
 }
 
-// 2. 表单数据，初始设为 null 以支持可选查询
+//表单数据，初始设为 null 以支持可选查询
 const queryForm = reactive({
   campus: '',   
   building: '', 
@@ -114,12 +114,12 @@ const queryForm = reactive({
   period: null
 })
 
-// 3. 监听校区变化，自动重置教学楼，防止出现“东校区-第三教学楼”的错误组合
+//监听校区变化，自动重置教学楼
 watch(() => queryForm.campus, () => {
   queryForm.building = ''
 })
 
-// 4. 计算当前选定校区下拥有的教学楼列表
+//计算当前选定校区下拥有的教学楼列表
 const currentBuildings = computed(() => {
   return queryForm.campus ? buildingMap[queryForm.campus] : []
 })
@@ -132,7 +132,7 @@ const tableData = computed(() => {
 })
 
 const handleSearch = async () => {
-  // 基础校验：至少得选个校区，否则数据量太大
+  //基础校验：至少得选个校区，要不数据量太大
   if (!queryForm.campus) {
     ElMessage.warning('请至少选择一个校区进行查询')
     return
@@ -142,7 +142,7 @@ const handleSearch = async () => {
   hasSearched.value = true
   
   try {
-    // 构造参数对象，过滤掉为 null 或空的字段
+    //构造参数对象，过滤掉为null或空的字段
     const params = {}
     if (queryForm.campus) params.campus = queryForm.campus
     if (queryForm.building) params.building = queryForm.building

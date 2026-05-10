@@ -121,10 +121,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const loading = ref(false)
 const allList = ref([])
 
-// 【新增】type 字段，用于区分寻物和招领
+//type区分寻物和招领
 const filter = reactive({ type: null, category: '', status: null, keyword: '' })
 
-// 审计详情
+//详情
 const auditVisible = ref(false)
 const selectedItem = ref(null)
 const comments = ref([])
@@ -140,22 +140,22 @@ const fetchList = async () => {
     const res = await request.get('/lost-found/list')
     let data = res || []
     
-    // 0. 【新增】类型检索 (寻物启事/失物招领)
+    //类型检索 (寻物启事/失物招领)
     if (typeof filter.type === 'number') {
       data = data.filter(i => i.type === filter.type)
     }
 
-    // 1. 分类检索
+    //分类检索
     if (filter.category) {
       data = data.filter(i => i.itemName.includes(`[${filter.category}]`))
     }
     
-    // 2. 状态检索 (严谨的数字判断，防止清空时报错)
+    //状态检索
     if (typeof filter.status === 'number') {
       data = data.filter(i => i.status === filter.status)
     }
     
-    // 3. 关键字检索
+    //关键字检索
     if (filter.keyword) {
       const kw = filter.keyword.toLowerCase()
       data = data.filter(i => i.itemName.toLowerCase().includes(kw) || i.publisherId.toString().includes(kw))
@@ -172,7 +172,7 @@ const fetchList = async () => {
 const openAuditDetail = async (row) => {
   selectedItem.value = row
   auditVisible.value = true
-  // 加载该物品的所有留言
+  //加载该物品的所有留言
   try {
     const res = await request.get(`/lost-found/comments/${row.id}`)
     comments.value = res || []

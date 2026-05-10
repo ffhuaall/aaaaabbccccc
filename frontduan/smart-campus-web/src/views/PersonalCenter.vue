@@ -2,15 +2,13 @@
   <div class="personal-container">
     <el-row :gutter="20">
       
-      <!-- ================= 左侧：头像修改区 ================= -->
       <el-col :span="8">
         <el-card shadow="never" class="avatar-card">
           <div class="avatar-wrapper">
-            <!-- action 需要换成你后端实际的文件上传接口 -->
             <el-upload
               class="avatar-uploader"
               action=""
-		      :http-request="customUpload"
+		          :http-request="customUpload"
               :show-file-list="false"
               :headers="uploadHeaders"
               :on-success="handleAvatarSuccess"
@@ -55,14 +53,13 @@
         </el-card>
       </el-col>
 
-      <!-- ================= 右侧：个人信息修改区 ================= -->
+      <!--个人信息修改-->
       <el-col :span="16">
         <el-card shadow="never" class="info-card">
           <template #header>
             <div class="card-header">
               <span class="header-title">✍️ 基本信息设置</span>
-              <!-- 新增的修改密码触发按钮 -->
-              <el-button type="danger" plain size="small" icon="Lock" @click="openPwdDialog">修改安全密码</el-button>
+              <el-button type="danger" plain size="small" icon="Lock" @click="openPwdDialog">修改登录密码</el-button>
             </div>
           </template>
 
@@ -98,8 +95,8 @@
       </el-col>
     </el-row>
 
-    <!-- ================= 修改密码独立弹窗 ================= -->
-    <el-dialog v-model="pwdDialogVisible" title="修改安全密码" width="450px" destroy-on-close>
+    <!--修改密码弹窗-->
+    <el-dialog v-model="pwdDialogVisible" title="修改登录密码" width="450px" destroy-on-close>
       <el-form 
         ref="pwdFormRef" 
         :model="pwdForm" 
@@ -163,14 +160,14 @@ const rules = {
 const roleConfig = computed(() => {
   const roleId = Number(userForm.roleId)
   switch (roleId) {
-    case 4: return { name: '超级管理员', type: 'danger' }
+    case 4: return { name: '系统管理员', type: 'danger' }
     case 3: return { name: '部门负责人', type: 'warning' }
-    case 2: return { name: '后勤维修工', type: 'success' }
-    default: return { name: '普通学生', type: 'primary' }
+    case 2: return { name: '维修人员', type: 'success' }
+    default: return { name: '学生', type: 'primary' }
   }
 })
 
-// 1. 头像上传前的格式和大小校验 (保留你的原逻辑)
+//头像上传前的格式和大小校验
 const beforeAvatarUpload = (file) => {
   const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif'
   const isLt2M = file.size / 1024 / 1024 < 2
@@ -179,20 +176,18 @@ const beforeAvatarUpload = (file) => {
   return isImage && isLt2M
 }
 
-// 2. ⚡️ 核心修复：自定义的上传方法，彻底解决跨域问题
+//自定义上传方法，解决跨域问题
 const customUpload = async (options) => {
   const formData = new FormData()
   formData.append('file', options.file)
 
   try {
-    // 这里完美对齐后端的 /file/upload 接口，且通过 request 享受代理
     const res = await request.post('/file/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     })
     
-    // 如果咱们的 request.js 拦截器直接返回了 data 层 (即那个 URL 字符串)
     if (res) {
       userForm.avatar = res 
       ElMessage.success('头像上传成功！记得点击底部保存按钮哦')
@@ -202,8 +197,6 @@ const customUpload = async (options) => {
     ElMessage.error('头像上传失败，请检查网络或后端接口')
   }
 }
-
-// 3. 废弃原有的 handleAvatarSuccess (因为被 customUpload 接管了)
 
 const saveProfile = () => {
   formRef.value.validate(async (valid) => {
@@ -227,7 +220,7 @@ const resetForm = () => {
   ElMessage.info('已恢复为原始信息')
 }
 
-// ================== 修改密码专属逻辑 ==================
+//修改密码
 const pwdDialogVisible = ref(false)
 const pwdFormRef = ref(null)
 const pwdLoading = ref(false)
@@ -295,11 +288,10 @@ const submitPassword = () => {
 </script>
 
 <style scoped>
-/* 基础样式跟之前一致 */
+
 .personal-container { padding-bottom: 20px; }
 .avatar-card, .info-card { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.03); height: 100%; }
 
-/* 给头部设置 Flex 布局，把“修改密码”按钮顶到右边 */
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .header-title { font-weight: bold; font-size: 16px; color: #333; }
 

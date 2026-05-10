@@ -9,13 +9,11 @@ const router = createRouter({
       component: () => import('@/views/Login.vue')
     },
     {
-      // 这里的 Layout 就是我们所有业务页面的“公共悬浮外壳”
       path: '/',
       component: () => import('@/layout/index.vue'),
-      redirect: '/dashboard', // 默认重定向到数据大屏
+      redirect: '/dashboard', //默认重定向到数据大屏
       children: [
         {
-          // 具体的数据大屏页面，会渲染在 Layout 的 <router-view> 里
           path: 'dashboard',
           name: 'Dashboard',
           component: () => import('@/views/Dashboard.vue')
@@ -40,7 +38,6 @@ const router = createRouter({
 		  name: 'Course',
 		  component: () => import('@/views/Course.vue')
 	    },
-		// 在 children 数组中加入：
         {
           path: 'lost-found',
           name: 'LostFound',
@@ -77,23 +74,21 @@ const router = createRouter({
 		  component: () => import('@/views/admin/SuperRepairManage.vue')
 		},
 		{
-		  path: 'admin/lost-found-manage', // 访问路径为 /admin/lost-found-manage
+		  path: 'admin/lost-found-manage', //访问路径/admin/lost-found-manage
 		  name: 'SuperLostFoundManage',
 		  component: () => import('@/views/admin/SuperLostFoundManage.vue'),
 		},
 		{
-		  path: 'admin/super-activity', // 浏览器地址栏会显示为 .../admin/super-activity
+		  path: 'admin/super-activity',
 		  name: 'SuperActivityManage',
-		  // 这里填写刚才新建的文件的精确路径
 		  component: () => import('@/views/admin/SuperActivityManage.vue'),
 		}
-        // 后续的 activity, repair, course 等页面都会继续往这里面加
       ]
     }
   ]
 })
 
-// 路由守卫：没登录不许进
+//路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   if (to.path !== '/login' && !token) {
