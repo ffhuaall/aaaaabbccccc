@@ -1,23 +1,26 @@
 <template>
   <div class="app-wrapper">
     <div class="sidebar-capsule">
-      <div class="logo">✨</div>
+      <div class="logo">🏢</div>
       <el-menu
-        :default-active="$route.path"
-        class="floating-menu"
-        :router="true"
-        :collapse="true"
+         :default-active="$route.path"
+         class="floating-menu"
+         :router="true"
+         :collapse="true"
+         background-color="#216ce3"
+         text-color="#ffffff"
+         active-text-color="#000000"
       >
         <!-- 全局统一首页入口 -->
         <el-menu-item index="/dashboard">
-          <el-icon><Odometer /></el-icon>
+          <el-icon><PieChart /></el-icon>
           <template #title>系统控制台</template>
         </el-menu-item>
         
         <!-- 学生视图 -->
         <template v-if="!userInfo.roleId || userInfo.roleId === 1">
           <el-menu-item index="/activity">
-            <el-icon><Calendar /></el-icon>
+            <el-icon><Flag /></el-icon>
             <template #title>活动中心</template>
           </el-menu-item>
           <el-menu-item index="/classroom">
@@ -29,7 +32,7 @@
             <template #title>我的课表</template>
           </el-menu-item>
           <el-menu-item index="/repair">
-            <el-icon><Service /></el-icon>
+            <el-icon><List /></el-icon>
             <template #title>宿舍报修</template>
           </el-menu-item>
           <el-menu-item index="/lost-found">
@@ -83,7 +86,7 @@
         </template>
       </el-menu>   
       <div class="bottom-action">
-        <el-button circle icon="SwitchButton" @click="handleLogout" type="danger" plain/>
+        
       </div>
     </div>
 
@@ -99,7 +102,7 @@
       />
 
       <div class="top-header">
-        <h2 class="page-title">智慧校园大厅</h2>
+        <h2 class="page-title">智慧校园一站式服务门户</h2>
         <div class="header-right">
           <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0" class="msg-badge">
             <el-icon class="bell-icon" @click="openMessageDrawer"><Bell /></el-icon>
@@ -233,21 +236,28 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.app-wrapper { display: flex; height: 100vh; background: #f0f4f8; padding: 20px; box-sizing: border-box; gap: 20px; }
-.sidebar-capsule { width: 80px; background: white; border-radius: 20px; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2); display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
+.app-wrapper { display: flex; height: 100vh; background: #f0f0f8; padding: 20px; box-sizing: border-box; gap: 20px; }
+.sidebar-capsule { width: 80px; background: #216ce3; border-radius: 20px; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2); display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
 .logo { font-size: 28px; margin-bottom: 30px; }
-.floating-menu { border-right: none; flex: 1; width: 100%; }
+.floating-menu { border-right: none; background: #216ce3;flex: 1; width: 100%; }
+.floating-menu :deep(.el-menu-item.is-active) {
+  background-color: #ffffff !important;
+  border-radius: 8px;
+  margin: 4px 8px;
+  width: calc(100% - 16px);
+}
 .bottom-action { margin-top: auto; }
 .main-container { flex: 1; background: white; border-radius: 20px; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2); display: flex; flex-direction: column; overflow: hidden; }
 .system-notice-banner { border-radius: 0; border: none; font-weight: bold; }
-.top-header { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; border-bottom: 1px solid #f0f0f0; }
-.page-title { margin: 0; font-size: 18px; color: #333; }
+.top-header { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; border-bottom: 1px solid #f0f0f0; background: #1e5cbf; }
+.page-title { margin: 0; font-size: 18px; color: #ffffff; }
 .header-right { display: flex; align-items: center; gap: 25px; }
 .user-info { display: flex; align-items: center; gap: 10px; font-weight: bold; color: #555; }
+.username {color: #ffffff;}
 .msg-badge { cursor: pointer; display: flex; align-items: center; }
-.bell-icon { font-size: 22px; color: #555; transition: color 0.3s; }
+.bell-icon { font-size: 22px; color: #fefefe; transition: color 0.3s; }
 .bell-icon:hover { color: #409EFF; }
-.content-body { flex: 1; padding: 20px; overflow-y: auto; background: #fafbfc; }
+.content-body { flex: 1; padding: 20px; overflow-y: auto; background: #fafbfc; }/*background: #fafbfc*/
 .msg-item { padding: 15px; border-radius: 8px; background: #f8f9fa; margin-bottom: 15px; border-left: 4px solid #dcdfe6; }
 .msg-item.is-unread { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left-color: #409EFF; }
 .msg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
