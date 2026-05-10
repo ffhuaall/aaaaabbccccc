@@ -1,7 +1,7 @@
 <template>
   <div class="app-wrapper">
     <div class="sidebar-capsule">
-      <div class="logo">🏢</div>
+      <div class="logo"></div>
       <el-menu
          :default-active="$route.path"
          class="floating-menu"

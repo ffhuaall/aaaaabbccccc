@@ -8,7 +8,7 @@
           <span class="emoji">🎓</span> Smart Campus
         </h1>
         <h2 class="title">连接校园每一刻</h2>
-        <p class="subtitle">智慧校园一站式服务门户 · 全面赋能你的大学生活</p>
+        <p class="subtitle">智慧校园一站式服务门户</p>
       </div>
 
       <div class="login-glass-card">
@@ -45,7 +45,6 @@
 
           <div class="action-row">
             <el-checkbox v-model="rememberMe">记住账号</el-checkbox>
-            <el-link type="primary" :underline="false">忘记密码？</el-link>
           </div>
 
           <el-form-item style="margin-top: 30px; margin-bottom: 0;">
@@ -55,15 +54,12 @@
           </el-form-item>
           
           <div class="help-tips">
-            <el-icon class="tip-icon"><Warning /></el-icon> 
-            <span>新生默认密码为身份证后六位，若遇问题请联系辅导员。</span>
           </div>
         </el-form>
       </div>
     </div>
     
     <div class="footer-copyright">
-      © 2024 智慧校园一站式服务平台 | 网络信息中心技术支持
     </div>
   </div>
 </template>
